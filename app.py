@@ -32,6 +32,10 @@ def index():
     # List all pose labels
     return render_template('index.html', labels=POSE_LABELS)
 
+@app.route('/pipeline')
+def pipeline():
+    return render_template('pipeline.html')
+
 @app.route('/pose/<label>')
 def pose_view(label):
     # Filter rows for this label and preserve original frame index

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Workflow Pipeline</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+</head>
+<body>
+  <a class="back" href="{{ url_for('index') }}">← Back to Gallery</a>
+  <h1 class="title">Pose Classification Pipeline</h1>
+
+  <section class="pipeline">
+    <!-- Step 1: Collect -->
+    <div class="step" id="step-collect">
+      <i class="fas fa-camera fa-3x"></i>
+      <h2>1. Collect</h2>
+      <p>Capture webcam poses via MediaPipe and save annotated landmarks to <code>data.csv</code>.</p>
+      <div class="details">
+        <h3>Under the Hood</h3>
+        <ul>
+          <li>mediaPipe Pose runs per-frame inference using a lightweight TFLite model.</li>
+          <li>We select key joints (<code>LEFT_SHOULDER</code>, <code>RIGHT_ELBOW</code>, etc.).</li>
+          <li>Coordinates (<code>x,y</code>) are normalized (0–1) and appended to <code>data.csv</code>.</li>
+          <li>A 3-second countdown allows users to assume the correct pose.</li>
+          <li>CSV header matches the landmark list for easy loading.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arrow" id="arrow1"><i class="fas fa-arrow-right fa-2x"></i></div>
+
+    <!-- Step 2: Train -->
+    <div class="step" id="step-train">
+      <i class="fas fa-robot fa-3x"></i>
+      <h2>2. Train</h2>
+      <p>Load <code>data.csv</code>, train a RandomForest pipeline, and export <code>pose_clf.pkl</code>.</p>
+      <div class="details">
+        <h3>Under the Hood</h3>
+        <ul>
+          <li>pandas reads the CSV into a DataFrame.</li>
+          <li>Features (<code>X</code>) are all landmark columns; target (<code>y</code>) is the pose label.</li>
+          <li>We split 70/30 for train/test with stratification.</li>
+          <li>scikit-learn Pipeline:&nbsp; <code>StandardScaler()</code> → <code>RandomForestClassifier(n_estimators=100)</code>.</li>
+          <li>Model is serialized via <code>joblib.dump</code> for later inference.</li>
+          <li>Test accuracy is printed to help diagnose overfitting.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arrow" id="arrow2"><i class="fas fa-arrow-right fa-2x"></i></div>
+
+    <!-- Step 3: Classify -->
+    <div class="step" id="step-classify">
+      <i class="fas fa-running fa-3x"></i>
+      <h2>3. Classify</h2>
+      <p>Run real-time pose classification on webcam input, displaying pose & confidence badge.</p>
+      <div class="details">
+        <h3>Under the Hood</h3>
+        <ul>
+          <li>Load <code>pose_clf.pkl</code> pipeline with <code>joblib.load</code>.</li>
+          <li>Grab webcam frames; MediaPipe computes landmarks.</li>
+          <li>Extract the same joints, build feature vector <code>[x1,y1,…,x12,y12]</code>.</li>
+          <li>Call <code>predict</code> & <code>predict_proba</code> for class and confidence.</li>
+          <li>Overlay the predicted label and probability on the live image.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Initial fade-in animation
+    document.addEventListener('DOMContentLoaded', () => {
+      anime.timeline({ loop: false })
+        .add({ targets: '#step-collect', opacity: [0,1], translateY: [20,0], duration: 800 })
+        .add({ targets: '#arrow1', opacity: [0,1], duration: 600 })
+        .add({ targets: '#step-train', opacity: [0,1], translateY: [20,0], duration: 800 })
+        .add({ targets: '#arrow2', opacity: [0,1], duration: 600 })
+        .add({ targets: '#step-classify', opacity: [0,1], translateY: [20,0], duration: 800 });
+    });
+
+    // Toggle details visibility on click
+    document.querySelectorAll('.step').forEach(step => {
+      step.style.cursor = 'pointer';
+      step.addEventListener('click', () => {
+        const details = step.querySelector('.details');
+        const isHidden = details.classList.toggle('open');
+        anime({
+          targets: details,
+          height: isHidden ? [0, details.scrollHeight] : [details.scrollHeight, 0],
+          opacity: isHidden ? [0,1] : [1,0],
+          easing: 'easeOutQuad',
+          duration: 500
+        });
+      });
+    });
+  </script>
+</body>
+</html>

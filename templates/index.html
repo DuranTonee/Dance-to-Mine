@@ -6,8 +6,11 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <h1 class="title">Pose Gallery</h1>
-  <ul class="pose-list">
+      <nav class="main-nav">
+        <a href="{{ url_for('pipeline') }}" class="nav-link">🚀 Process Pipeline</a>
+      </nav>
+       <h1 class="title">Pose Gallery</h1>
+       <ul class="pose-list">
     {% for label in labels %}
       <li class="pose-item">
         <a href="{{ url_for('pose_view', label=label) }}">{{ label }}</a>
