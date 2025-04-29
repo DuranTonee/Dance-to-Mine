@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Pose Gallery</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1 class="title">Pose Gallery</h1>
+  <ul class="pose-list">
+    {% for label in labels %}
+      <li class="pose-item">
+        <a href="{{ url_for('pose_view', label=label) }}">{{ label }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

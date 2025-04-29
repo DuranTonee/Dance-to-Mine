@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ label }} Frames</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <a class="back" href="{{ url_for('index') }}">← Back to Gallery</a>
+  <h1 class="title">{{ label }}</h1>
+  <div class="grid">
+    {% for frame in frames %}
+    <div class="card-container">
+      <div class="card" onclick="openModal('{{ url_for('plot_png', frame=frame) }}')">
+        <img src="{{ url_for('plot_png', frame=frame) }}" alt="Frame {{ frame }}">
+        <p>Frame {{ frame }}</p>
+      </div>
+      <!-- delete button form -->
+      <form method="post" action="{{ url_for('delete_frame') }}" onsubmit="return confirm('Remove frame {{ frame }}?');">
+        <input type="hidden" name="frame" value="{{ frame }}">
+        <input type="hidden" name="label" value="{{ label }}">
+        <button type="submit" class="delete-btn">🗑️</button>
+      </form>
+    </div>
+  {% endfor %}
+  </div>
+
+  <!-- Modal for enlarged view -->
+  <div id="modal" class="modal" onclick="closeModal()">
+    <span class="close">&times;</span>
+    <img class="modal-content" id="modal-img">
+  </div>
+
+  <script>
+    function openModal(src) {
+      document.getElementById('modal').style.display = 'block';
+      document.getElementById('modal-img').src = src;
+    }
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
