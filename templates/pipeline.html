@@ -12,6 +12,7 @@
   <h1 class="title">Pose Classification Pipeline</h1>
 
   <section class="pipeline">
+
     <!-- Step 1: Collect -->
     <div class="step" id="step-collect">
       <i class="fas fa-camera fa-3x"></i>
@@ -20,7 +21,7 @@
       <div class="details">
         <h3>Under the Hood</h3>
         <ul>
-          <li>mediaPipe Pose runs per-frame inference using a lightweight TFLite model.</li>
+          <li>MediaPipe Pose runs per-frame inference using a lightweight TFLite model.</li>
           <li>We select key joints (<code>LEFT_SHOULDER</code>, <code>RIGHT_ELBOW</code>, etc.).</li>
           <li>Coordinates (<code>x,y</code>) are normalized (0–1) and appended to <code>data.csv</code>.</li>
           <li>A 3-second countdown allows users to assume the correct pose.</li>
@@ -35,16 +36,18 @@
     <div class="step" id="step-train">
       <i class="fas fa-robot fa-3x"></i>
       <h2>2. Train</h2>
-      <p>Load <code>data.csv</code>, train a RandomForest pipeline, and export <code>pose_clf.pkl</code>.</p>
+      <p>Load <code>data.csv</code>, engineer features, run stratified CV, and export <code>pose_clf.pkl</code>.</p>
       <div class="details">
         <h3>Under the Hood</h3>
         <ul>
-          <li>pandas reads the CSV into a DataFrame.</li>
-          <li>Features (<code>X</code>) are all landmark columns; target (<code>y</code>) is the pose label.</li>
-          <li>We split 70/30 for train/test with stratification.</li>
-          <li>scikit-learn Pipeline:&nbsp; <code>StandardScaler()</code> → <code>RandomForestClassifier(n_estimators=100)</code>.</li>
-          <li>Model is serialized via <code>joblib.dump</code> for later inference.</li>
-          <li>Test accuracy is printed to help diagnose overfitting.</li>
+          <li><strong>Data Loading:</strong> <code>pandas</code> reads the CSV into a DataFrame.</li>
+          <li><strong>Normalization:</strong> Each skeleton is centered at the hip midpoint and scaled by torso length, removing absolute size/position differences.</li>
+          <li><strong>Geometric Features:</strong> Compute distances (e.g., wrist–elbow) and angles (e.g., shoulder–elbow–wrist) to capture intrinsic pose shape.</li>
+          <li><strong>Temporal Deltas:</strong> For each frame, subtract the previous normalized skeleton to encode motion (Δx, Δy) as features.</li>
+          <li><strong>Feature Vector:</strong> Concatenate [normalized coords, distances/angles, deltas] into a single input vector.</li>
+          <li><strong>Stratified CV:</strong> Use <code>StratifiedKFold(n_splits=5)</code> to preserve class balance and compute fold accuracies.</li>
+          <li><strong>Pipeline:</strong> <code>StandardScaler()</code> → <code>RandomForestClassifier(n_estimators=100)</code> trained on each fold.</li>
+          <li><strong>Final Model:</strong> Retrain on full dataset and serialize via <code>joblib.dump</code>.</li>
         </ul>
       </div>
     </div>
@@ -55,18 +58,19 @@
     <div class="step" id="step-classify">
       <i class="fas fa-running fa-3x"></i>
       <h2>3. Classify</h2>
-      <p>Run real-time pose classification on webcam input, displaying pose & confidence badge.</p>
+      <p>Run real-time pose classification on webcam input, drawing skeleton and displaying pose & confidence.</p>
       <div class="details">
         <h3>Under the Hood</h3>
         <ul>
           <li>Load <code>pose_clf.pkl</code> pipeline with <code>joblib.load</code>.</li>
-          <li>Grab webcam frames; MediaPipe computes landmarks.</li>
-          <li>Extract the same joints, build feature vector <code>[x1,y1,…,x12,y12]</code>.</li>
-          <li>Call <code>predict</code> & <code>predict_proba</code> for class and confidence.</li>
-          <li>Overlay the predicted label and probability on the live image.</li>
+          <li>Grab webcam frames; MediaPipe computes landmarks for the 12 key joints.</li>
+          <li>Normalize and build [coords, geom, deltas] feature vector as during training.</li>
+          <li>Predict with <code>predict</code> & <code>predict_proba</code> to get class and confidence.</li>
+          <li>Draw the skeleton (no face/fingers) and overlay the predicted label in red.</li>
         </ul>
       </div>
     </div>
+
   </section>
 
   <script>
