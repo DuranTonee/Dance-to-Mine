@@ -92,6 +92,7 @@ $ python app.py
 - Visualize skeletons via generated PNGs
 
 ## Project Structure
+```
 Pose2Minecraft/
 ├── collect.py                 # Data collection script
 ├── train.py                   # Feature engineering & model training
@@ -103,6 +104,7 @@ Pose2Minecraft/
 ├── templates/                 # Flask HTML templates (index, pipeline, pose)
 ├── landmarks.png              # Diagram of selected landmarks
 └── teachable_machine-fail/    # Experiments with Teachable Machine
+```
 
 ## How it works
 Collect
