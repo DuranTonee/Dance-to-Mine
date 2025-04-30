@@ -62,7 +62,7 @@ def collect(class_name: str):
     5. Draws only those joints & connections (whole-body skeleton)
     6. Appends label + coords to CSV
     """
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
     ensure_header()
 
     # Initialize Pose estimator once inside collect so logs appear after prompt
@@ -138,5 +138,5 @@ def collect(class_name: str):
 
 if __name__ == "__main__":
     # Prompt user for label before initializing Mediapipe logs
-    label = input("Enter pose label to collect (e.g. 'T_pose'): ").strip()
+    label = input("Enter pose label to collect: ").strip()
     collect(label)

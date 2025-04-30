@@ -11,7 +11,7 @@ DATA_FILE = "data.csv"
 # Load once at startup
 data = pd.read_csv(DATA_FILE)
 # Unique pose labels
-POSE_LABELS = sorted(data['label'].unique())
+POSE_LABELS = data['label'].drop_duplicates().tolist()
 
 # Landmarks & connections (match your collect.py)
 LANDMARKS = [
@@ -78,5 +78,16 @@ def delete_frame():
     data.to_csv(DATA_FILE, index=False)
     return redirect(url_for('pose_view', label=label))
 
+@app.route('/delete_frames', methods=['POST'])
+def delete_frames():
+    # Get list of selected frame indices
+    frames = list(map(int, request.form.getlist('frames')))
+    label  = request.form['label']
+    global data
+    # Drop them, reset index, write CSV
+    data = data.drop(index=frames).reset_index(drop=True)
+    data.to_csv(DATA_FILE, index=False)
+    return redirect(url_for('pose_view', label=label))
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=6942, debug=True)

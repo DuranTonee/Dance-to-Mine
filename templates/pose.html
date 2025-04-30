@@ -8,22 +8,30 @@
 <body>
   <a class="back" href="{{ url_for('index') }}">← Back to Gallery</a>
   <h1 class="title">{{ label }}</h1>
-  <div class="grid">
-    {% for frame in frames %}
-    <div class="card-container">
-      <div class="card" onclick="openModal('{{ url_for('plot_png', frame=frame) }}')">
-        <img src="{{ url_for('plot_png', frame=frame) }}" alt="Frame {{ frame }}">
-        <p>Frame {{ frame }}</p>
+
+  <!-- Select Mode Toggle -->
+  <label class="select-mode-label">
+    <input type="checkbox" id="select-mode-checkbox">
+    Select Mode
+  </label>
+
+  <!-- Bulk-delete form -->
+  <form method="post" action="{{ url_for('delete_frames') }}" id="bulk-delete-form">
+    <input type="hidden" name="label" value="{{ label }}">
+    <button type="submit" class="delete-selected-btn">🗑️ Delete Selected</button>
+
+    <div class="grid">
+      {% for frame in frames %}
+      <div class="card-container">
+        <input type="checkbox" name="frames" value="{{ frame }}" class="select-checkbox">
+        <div class="card">
+          <img src="{{ url_for('plot_png', frame=frame) }}" alt="Frame {{ frame }}">
+          <p>Frame {{ frame }}</p>
+        </div>
       </div>
-      <!-- delete button form -->
-      <form method="post" action="{{ url_for('delete_frame') }}" onsubmit="return confirm('Remove frame {{ frame }}?');">
-        <input type="hidden" name="frame" value="{{ frame }}">
-        <input type="hidden" name="label" value="{{ label }}">
-        <button type="submit" class="delete-btn">🗑️</button>
-      </form>
+      {% endfor %}
     </div>
-  {% endfor %}
-  </div>
+  </form>
 
   <!-- Modal for enlarged view -->
   <div id="modal" class="modal" onclick="closeModal()">
@@ -32,6 +40,7 @@
   </div>
 
   <script>
+    // Modal open/close
     function openModal(src) {
       document.getElementById('modal').style.display = 'block';
       document.getElementById('modal-img').src = src;
@@ -39,6 +48,40 @@
     function closeModal() {
       document.getElementById('modal').style.display = 'none';
     }
+
+    // Select mode logic
+    document.addEventListener('DOMContentLoaded', () => {
+      let selectMode = false;
+      const selectCheckbox = document.getElementById('select-mode-checkbox');
+      const containers = document.querySelectorAll('.card-container');
+
+      selectCheckbox.addEventListener('change', (e) => {
+        selectMode = e.target.checked;
+        document.body.classList.toggle('select-mode-active', selectMode);
+        // Toggle bulk-delete button visibility
+        document.querySelector('.delete-selected-btn').style.display = selectMode ? 'inline-block' : 'none';
+      });
+
+      containers.forEach(container => {
+        container.addEventListener('click', (e) => {
+          // Prevent default on clicks for checkbox or delete button
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+          const checkbox = container.querySelector('.select-checkbox');
+          const img = container.querySelector('img').src;
+
+          if (selectMode) {
+            // Toggle selection
+            checkbox.checked = !checkbox.checked;
+          } else {
+            // Open modal
+            openModal(img);
+          }
+        });
+      });
+
+      // Initially hide bulk-delete button
+      document.querySelector('.delete-selected-btn').style.display = 'none';
+    });
   </script>
 </body>
 </html>
