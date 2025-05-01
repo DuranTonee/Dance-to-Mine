@@ -75,7 +75,7 @@ pose = mp_pose.Pose(
 clf = joblib.load(MODEL_PATH)
 
 # ── REAL-TIME LOOP WITH FEATURE ENGINEERING ─────────────────────────────
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 
 # ◀ ADDED: create a resizable window and enlarge it 1.2×
 window_name = "Pose Classification"
