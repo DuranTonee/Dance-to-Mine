@@ -7,12 +7,18 @@ import pyautogui
 import mouse
 import time
 from collections import deque
+import threading
 
 # ── CONFIG ─────────────────────────────────────────────────────────────
 MODEL_PATH       = "pose_clf.pkl"
 IGNORE_THRESHOLD = 0.2    # seconds to ignore very short detections
-MOUSE_SPEED      = 400    # px per second (was 500)
+MOUSE_SPEED      = 450    # px per second (was 500)
 CLICK_HOLD_TIME  = 1.5    # seconds (was 1.0)
+
+# shared mouse speed (px/sec). 0 means “no pan.”
+mouse_speed = 0.0
+# flag to keep the thread alive
+keep_moving = True
 
 # exactly 12 landmarks
 LANDMARKS = [
@@ -70,10 +76,19 @@ def temporal_delta(prev, curr):
     return (curr - prev).flatten()
 
 # ── CONTROL HELPERS ────────────────────────────────────────────────────
-def pan_mouse(speed, dt):
-    # move at `speed` px/sec for this frame
-    dx = speed * dt
-    mouse.move(dx, 0, absolute=False)
+def _mouse_mover():
+    """Background thread: small moves at 100Hz based on global mouse_speed."""
+    hz = 100.0
+    delay = 1.0 / hz
+    while keep_moving:
+        sp = mouse_speed
+        if sp:
+            # move speed/hz pixels each tick
+            mouse.move(sp / hz, 0, absolute=False)
+        time.sleep(delay)
+
+# start the thread once
+threading.Thread(target=_mouse_mover, daemon=True).start()
 
 # ── SETUP MODEL & STATE ────────────────────────────────────────────────
 mp_pose = mp.solutions.pose
@@ -171,10 +186,13 @@ while True:
             prev_stable_pred = stable_pred
 
         # continuous actions for the current stable pose
+        # update the global pan speed
         if stable_pred == "disco_left":
-            pan_mouse(-MOUSE_SPEED, dt)
+            mouse_speed = -MOUSE_SPEED
         elif stable_pred == "disco_right":
-            pan_mouse( MOUSE_SPEED, dt)
+            mouse_speed =  MOUSE_SPEED
+        else:
+            mouse_speed = 0.0
 
         # release click after 1s
         if click_down and (now - click_start) >= CLICK_HOLD_TIME:
@@ -203,5 +221,6 @@ while True:
 # ── CLEANUP ───────────────────────────────────────────────────────────
 if w_down:     pyautogui.keyUp("w")
 if click_down: pyautogui.mouseUp()
+keep_moving = False     # signal thread to stop
 cap.release()
 cv2.destroyAllWindows()
