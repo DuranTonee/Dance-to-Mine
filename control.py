@@ -50,6 +50,7 @@ CONNECTIONS = [
 ]
 
 # ── FEATURE HELPERS ────────────────────────────────────────────────────
+## recenters all points on the hip midpoint and scales them by torso length so that people of different sizes map to the same feature space.
 def normalize_skeleton(skel):
     hip_l, hip_r = skel[6], skel[7]
     center = (hip_l + hip_r) / 2
@@ -58,20 +59,24 @@ def normalize_skeleton(skel):
     torso = np.linalg.norm(((sh_l + sh_r)/2) - center) + 1e-6
     return coords / torso
 
+## names says it. distance between 2 points
 def distance(a, b):
     return np.linalg.norm(a - b)
 
+## computes the angle at point b formed by the segments b→a and b→c, in degrees.
 def angle(a, b, c):
     v1, v2 = a - b, c - b
     cosv = np.dot(v1, v2) / (np.linalg.norm(v1)*np.linalg.norm(v2) + 1e-6)
     return np.degrees(np.arccos(np.clip(cosv, -1, 1)))
 
+## picks two geometric features (one distance, one angle) for your classifier.
 def extract_geom(skel):
     return [
         distance(skel[4], skel[2]),        # wrist–elbow
         angle(skel[0], skel[2], skel[4])   # shoulder–elbow–wrist angle
     ]
 
+## captures motion by subtracting last frame’s normalized coords.
 def temporal_delta(prev, curr):
     return (curr - prev).flatten()
 
@@ -96,22 +101,22 @@ pose = mp_pose.Pose(static_image_mode=False,
                     min_detection_confidence=0.5,
                     min_tracking_confidence=0.5)
 clf = joblib.load(MODEL_PATH)
-pyautogui.FAILSAFE = True
+pyautogui.FAILSAFE = True   # move mouse to top-left to abort
 
 # Debounce & action state
-last_frame_pred   = None
-frame_pred_start  = 0.0
-stable_pred       = None
-prev_stable_pred  = None
-prev_norm         = None
+last_frame_pred   = None            # the very last raw prediction
+frame_pred_start  = 0.0             # when it started
+stable_pred       = None            # the debounced “stable” pose
+prev_stable_pred  = None            # previous stable pose to detect transitions
+prev_norm         = None            # previous normalized skeleton for computing deltas
 last_time         = time.time()
 w_down            = False
 click_down        = False
 click_start       = 0.0
-updown_hist       = deque(maxlen=4)
+updown_hist       = deque(maxlen=4) # a small history of “up/down” gestures for click detection
 
 # ── MAIN LOOP ──────────────────────────────────────────────────────────
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)   # for me it varies 0/2 depending on the camera; 0 is default
 cv2.namedWindow("Pose2Minecraft", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("Pose2Minecraft", 1080, 720)
 print("[control] Starting. ESC to quit or move mouse to top-left to abort.")
