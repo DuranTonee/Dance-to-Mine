@@ -12,7 +12,7 @@ import threading
 # ── CONFIG ─────────────────────────────────────────────────────────────
 MODEL_PATH       = "pose_clf.pkl"
 IGNORE_THRESHOLD = 0.2    # seconds to ignore very short detections
-ROTATE_DURATION  = 0.5
+ROTATE_DURATION  = 0.4
 MOUSE_SPEED      = 750    # px per second (was 500)
 CLICK_HOLD_TIME  = 1.5    # seconds (was 1.0)
 
@@ -22,8 +22,10 @@ DROP_INTERVAL    = 1.0
 last_drop        = 0.0
 
 sprint_down      = False
+crouch_down      = False
 
 mouse_speed      = 0.0
+vertical_speed   = 0.0
 keep_moving      = True
 
 rotate_start     = 0.0
@@ -95,10 +97,11 @@ def _mouse_mover():
     hz = 100.0
     delay = 1.0 / hz
     while keep_moving:
-        sp = mouse_speed
-        if sp:
-            # move speed/hz pixels each tick
-            mouse.move(sp / hz, 0, absolute=False)
+        dx = mouse_speed
+        dy = vertical_speed
+        if dx or dy:
+           # move (dx,dy) per second split over hz ticks
+           mouse.move(dx/hz, dy/hz, absolute=False)
         time.sleep(delay)
 
 def toggle_sprint():
@@ -109,6 +112,28 @@ def toggle_sprint():
     else:
         pyautogui.keyUp("shift")
         sprint_down = False
+
+def toggle_crouch():
+    global crouch_down
+    if not crouch_down:
+        pyautogui.keyDown("ctrl")
+        crouch_down = True
+    else:
+        pyautogui.keyUp("ctrl")
+        crouch_down = False
+
+def do_jump():
+    """Hold space for 1 second."""
+    pyautogui.keyDown("space")
+    time.sleep(1)
+    pyautogui.keyUp("space")
+
+def delayed_stop_w():
+    """Release W 0.7s after t_pose ends."""
+    global w_down
+    time.sleep(0.7)
+    pyautogui.keyUp("w")
+    w_down = False
 
 # start the thread once
 threading.Thread(target=_mouse_mover, daemon=True).start()
@@ -127,7 +152,7 @@ frame_pred_start  = 0.0             # when it started
 stable_pred       = None            # the debounced “stable” pose
 prev_stable_pred  = None            # previous stable pose to detect transitions
 prev_norm         = None            # previous normalized skeleton for computing deltas
-last_time         = time.time()
+last_time         = time.perf_counter()
 w_down            = False
 click_down        = False
 click_start       = 0.0
@@ -144,7 +169,7 @@ while True:
     if not ret:
         break
 
-    now = time.time()
+    now = time.perf_counter()
     dt  = now - last_time
     last_time = now
 
@@ -188,8 +213,13 @@ while True:
         if stable_pred != prev_stable_pred:
             # exiting previous pose
             if prev_stable_pred == "t_pose" and w_down:
-                pyautogui.keyUp("w")
-                w_down = False
+                # if next pose should keep W held a bit longer, delay release
+                if stable_pred in ("jump","disco_left","disco_right","hands_up","hands_hips"):
+                    threading.Thread(target=delayed_stop_w, daemon=True).start()
+                else:
+                    # otherwise release immediately
+                    pyautogui.keyUp("w")
+                    w_down = False
 
             # entering new pose
             if stable_pred == "t_pose":
@@ -212,7 +242,15 @@ while True:
             # leg_left toggles sprint in a background thread. NOTE: I have sprinting set to "SHIFT", not "CTRL"
             if stable_pred == "leg_left":
                 threading.Thread(target=toggle_sprint, daemon=True).start()
-
+            
+            # squat toggles CTRL on/off
+            if stable_pred == "squat":
+                threading.Thread(target=toggle_crouch, daemon=True).start()
+            
+            # jump holds space for 1 second
+            if stable_pred == "jump":
+                threading.Thread(target=do_jump, daemon=True).start()
+            
             prev_stable_pred = stable_pred
 
         # leg_right → one scroll-down per second
@@ -231,12 +269,23 @@ while True:
             mouse_speed =  MOUSE_SPEED
             rotating    = True
             rotate_start = now
+        # look up/down with hands
+        elif stable_pred == "hands_up":
+            vertical_speed = -MOUSE_SPEED
+            rotating       = True
+            rotate_start   = now
+        elif stable_pred == "hands_hips":
+            vertical_speed =  MOUSE_SPEED
+            rotating       = True
+            rotate_start   = now
         else:
             mouse_speed = 0.0
+            vertical_speed = 0.0
 
         if rotating and (now - rotate_start) >= ROTATE_DURATION:
-            mouse_speed = 0.0
-            rotating   = False
+            mouse_speed    = 0.0
+            vertical_speed = 0.0
+            rotating       = False
 
 
 
@@ -258,6 +307,10 @@ while True:
         status = "SPRINT ON" if sprint_down else "SPRINT OFF"
         cv2.putText(img, status, (10, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,0,0), 2)
+        # display crouch (CTRL) status
+        crouch_status = "CROUCH ON" if crouch_down else "CROUCH OFF"
+        cv2.putText(img, crouch_status, (10, 110),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,0,0), 2)
 
     cv2.imshow("Pose2Minecraft", img)
     if cv2.waitKey(1) & 0xFF == 27:
@@ -266,6 +319,8 @@ while True:
 # ── CLEANUP ───────────────────────────────────────────────────────────
 if w_down: pyautogui.keyUp("w")
 if click_down: pyautogui.mouseUp()
+if crouch_down: pyautogui.keyUp("ctrl")
+if sprint_down: pyautogui.keyUp("shift")
 keep_moving = False     # signal thread to stop
 cap.release()
 cv2.destroyAllWindows()
