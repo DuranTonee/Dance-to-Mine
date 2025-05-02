@@ -12,24 +12,22 @@ import threading
 # ── CONFIG ─────────────────────────────────────────────────────────────
 MODEL_PATH       = "pose_clf.pkl"
 IGNORE_THRESHOLD = 0.2    # seconds to ignore very short detections
-ROTATE_DURATION = 0.5
+ROTATE_DURATION  = 0.5
 MOUSE_SPEED      = 750    # px per second (was 500)
 CLICK_HOLD_TIME  = 1.5    # seconds (was 1.0)
 
-SCROLL_INTERVAL = 1.0
-last_scroll     = 0.0
-DROP_INTERVAL   = 1.0
-last_drop       = 0.0
+SCROLL_INTERVAL  = 1.0
+last_scroll      = 0.0
+DROP_INTERVAL    = 1.0
+last_drop        = 0.0
 
 sprint_down      = False
 
-# shared mouse speed (px/sec). 0 means “no pan.”
-mouse_speed = 0.0
-# flag to keep the thread alive
-keep_moving = True
+mouse_speed      = 0.0
+keep_moving      = True
 
-rotate_start    = 0.0
-rotating        = False
+rotate_start     = 0.0
+rotating         = False
 
 # exactly 12 landmarks
 LANDMARKS = [
@@ -48,8 +46,8 @@ LANDMARKS = [
 ]
 
 CONNECTIONS = [
-    (mp.solutions.pose.PoseLandmark.LEFT_SHOULDER, mp.solutions.pose.PoseLandmark.LEFT_ELBOW),
-    (mp.solutions.pose.PoseLandmark.LEFT_ELBOW,    mp.solutions.pose.PoseLandmark.LEFT_WRIST),
+    (mp.solutions.pose.PoseLandmark.LEFT_SHOULDER,  mp.solutions.pose.PoseLandmark.LEFT_ELBOW),
+    (mp.solutions.pose.PoseLandmark.LEFT_ELBOW,     mp.solutions.pose.PoseLandmark.LEFT_WRIST),
     (mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER, mp.solutions.pose.PoseLandmark.RIGHT_ELBOW),
     (mp.solutions.pose.PoseLandmark.RIGHT_ELBOW,    mp.solutions.pose.PoseLandmark.RIGHT_WRIST),
     (mp.solutions.pose.PoseLandmark.LEFT_SHOULDER,  mp.solutions.pose.PoseLandmark.LEFT_HIP),
@@ -266,7 +264,7 @@ while True:
         break
 
 # ── CLEANUP ───────────────────────────────────────────────────────────
-if w_down:     pyautogui.keyUp("w")
+if w_down: pyautogui.keyUp("w")
 if click_down: pyautogui.mouseUp()
 keep_moving = False     # signal thread to stop
 cap.release()
