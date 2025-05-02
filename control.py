@@ -12,13 +12,24 @@ import threading
 # ── CONFIG ─────────────────────────────────────────────────────────────
 MODEL_PATH       = "pose_clf.pkl"
 IGNORE_THRESHOLD = 0.2    # seconds to ignore very short detections
-MOUSE_SPEED      = 450    # px per second (was 500)
+ROTATE_DURATION = 0.5
+MOUSE_SPEED      = 750    # px per second (was 500)
 CLICK_HOLD_TIME  = 1.5    # seconds (was 1.0)
+
+SCROLL_INTERVAL = 1.0
+last_scroll     = 0.0
+DROP_INTERVAL   = 1.0
+last_drop       = 0.0
+
+sprint_down      = False
 
 # shared mouse speed (px/sec). 0 means “no pan.”
 mouse_speed = 0.0
 # flag to keep the thread alive
 keep_moving = True
+
+rotate_start    = 0.0
+rotating        = False
 
 # exactly 12 landmarks
 LANDMARKS = [
@@ -91,6 +102,15 @@ def _mouse_mover():
             # move speed/hz pixels each tick
             mouse.move(sp / hz, 0, absolute=False)
         time.sleep(delay)
+
+def toggle_sprint():
+    global sprint_down
+    if not sprint_down:
+        pyautogui.keyDown("shift")
+        sprint_down = True
+    else:
+        pyautogui.keyUp("shift")
+        sprint_down = False
 
 # start the thread once
 threading.Thread(target=_mouse_mover, daemon=True).start()
@@ -181,28 +201,46 @@ while True:
             # up/down pattern tracking
             if stable_pred in ("disco_up","disco_down"):
                 updown_hist.append(stable_pred)
-                if list(updown_hist) == ["disco_up","disco_down","disco_up","disco_down"]:
+                hist = list(updown_hist)           # ← convert to list
+                if not click_down and len(hist) >= 2 and hist[-2:] == ["disco_up","disco_down"]:
                     pyautogui.mouseDown()
                     click_down = True
-                    click_start = now
             else:
+                if click_down:
+                    pyautogui.mouseUp()
+                    click_down = False
                 updown_hist.clear()
+                    
+            # leg_left toggles sprint in a background thread. NOTE: I have sprinting set to "SHIFT", not "CTRL"
+            if stable_pred == "leg_left":
+                threading.Thread(target=toggle_sprint, daemon=True).start()
 
             prev_stable_pred = stable_pred
+
+        # leg_right → one scroll-down per second
+        if stable_pred == "leg_right":
+            if now - last_scroll >= SCROLL_INTERVAL:
+                pyautogui.scroll(-100)    # negative is scroll down
+                last_scroll = now
 
         # continuous actions for the current stable pose
         # update the global pan speed
         if stable_pred == "disco_left":
             mouse_speed = -MOUSE_SPEED
+            rotating    = True
+            rotate_start = now
         elif stable_pred == "disco_right":
             mouse_speed =  MOUSE_SPEED
+            rotating    = True
+            rotate_start = now
         else:
             mouse_speed = 0.0
 
-        # release click after 1s
-        if click_down and (now - click_start) >= CLICK_HOLD_TIME:
-            pyautogui.mouseUp()
-            click_down = False
+        if rotating and (now - rotate_start) >= ROTATE_DURATION:
+            mouse_speed = 0.0
+            rotating   = False
+
+
 
         # ── DRAW OVERLAY ──────────────────────────
         h, w = img.shape[:2]
@@ -218,6 +256,10 @@ while True:
 
         cv2.putText(img, stable_pred or "", (10, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0,0,255), 3)
+        # display sprint status
+        status = "SPRINT ON" if sprint_down else "SPRINT OFF"
+        cv2.putText(img, status, (10, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,0,0), 2)
 
     cv2.imshow("Pose2Minecraft", img)
     if cv2.waitKey(1) & 0xFF == 27:
