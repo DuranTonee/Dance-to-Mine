@@ -89,5 +89,11 @@ def delete_frames():
     data.to_csv(DATA_FILE, index=False)
     return redirect(url_for('pose_view', label=label))
 
+@app.route('/skeleton')
+def skeleton():
+    # this makes /static/data.csv available to the client
+    data_url = url_for('static', filename='data.csv')
+    return render_template('skeleton_viewer.html', data_url=data_url)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=6942, debug=True)

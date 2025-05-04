@@ -1,4 +1,3 @@
-# classify_control.py
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -129,9 +128,9 @@ def do_jump():
     pyautogui.keyUp("space")
 
 def delayed_stop_w():
-    """Release W 0.7s after t_pose ends."""
+    """Release W 1s after t_pose ends."""
     global w_down
-    time.sleep(0.7)
+    time.sleep(1)
     pyautogui.keyUp("w")
     w_down = False
 
