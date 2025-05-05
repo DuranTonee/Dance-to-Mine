@@ -1,48 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Interactive Skeleton Viewer</title>
-
-  <!-- PapaParse for CSV parsing -->
+  <meta charset="utf-8">
+  <title>💀 Skeleton “Hologram” Viewer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- D3 for SVG drawing -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
-
-  <style>
-    body {
-      background: #000;
-      color: #0ff;
-      font-family: sans-serif;
-      text-align: center;
-    }
-    #controls {
-      margin: 20px;
-    }
-    #viz {
-      width: 600px;
-      height: 600px;
-      margin: 0 auto;
-      /* cyan glow */
-      filter: drop-shadow(0 0 12px cyan);
-      background: rgba(0,0,0,0.3);
-      border: 1px solid #0ff;
-    }
-    svg {
-      width: 100%;
-      height: 100%;
-    }
-    select, input[type=range] {
-      background: #111;
-      color: #0ff;
-      border: 1px solid #0ff;
-      padding: 4px;
-    }
-  </style>
 </head>
 <body>
-
-  <h1>Skeleton “Hologram” Viewer</h1>
+  <a href="{{ url_for('main') }}" class="btn-home btn">🏠 Home</a>
+  <h1 class="title neon">Skeleton “Hologram” Viewer</h1>
 
   <div id="controls">
     <label>
@@ -60,120 +27,90 @@
   <div id="viz"></div>
 
   <script>
-    // URL to your CSV, passed in from Flask
     const DATA_URL = "{{ data_url }}";
-
-    // Which landmarks connect to which
     const CONNECTIONS = [
-      ['left_shoulder','left_elbow'],
-      ['left_elbow','left_wrist'],
-      ['right_shoulder','right_elbow'],
-      ['right_elbow','right_wrist'],
-      ['left_shoulder','right_shoulder'],
-      ['left_shoulder','left_hip'],
-      ['right_shoulder','right_hip'],
-      ['left_hip','right_hip'],
-      ['left_hip','left_knee'],
-      ['left_knee','left_ankle'],
-      ['right_hip','right_knee'],
-      ['right_knee','right_ankle']
+      ['left_shoulder','left_elbow'], ['left_elbow','left_wrist'],
+      ['right_shoulder','right_elbow'], ['right_elbow','right_wrist'],
+      ['left_shoulder','right_shoulder'], ['left_shoulder','left_hip'],
+      ['right_shoulder','right_hip'], ['left_hip','right_hip'],
+      ['left_hip','left_knee'], ['left_knee','left_ankle'],
+      ['right_hip','right_knee'], ['right_knee','right_ankle']
     ];
-
     let dataByLabel = {};
 
-    // 1) Load & group
     Papa.parse(DATA_URL, {
-      download: true,
-      header: true,
-      dynamicTyping: true,
+      download: true, header: true, dynamicTyping: true,
       skipEmptyLines: true,
       complete: ({ data }) => {
         data.forEach(row => {
-          if (!dataByLabel[row.label]) dataByLabel[row.label] = [];
+          if (!dataByLabel[row.label]) dataByLabel[row.label]=[];
           dataByLabel[row.label].push(row);
         });
         initUI(Object.keys(dataByLabel));
       }
     });
 
-    // 2) Build UI controls
     function initUI(labels) {
       const sel = d3.select('#labelSelect');
       sel.selectAll('option')
          .data(labels)
          .enter()
          .append('option')
-           .attr('value', d => d)
-           .text(d => d);
-
+         .attr('value', d=>d)
+         .text(d=>d);
       sel.on('change', updateFrames);
       updateFrames();
     }
 
     function updateFrames() {
       const label = d3.select('#labelSelect').property('value');
-      const frames = dataByLabel[label].length;
-      const slider = d3.select('#frameSlider');
-      slider.attr('max', frames - 1)
-            .on('input', () => {
-              const idx = +slider.property('value');
-              d3.select('#frameIndex').text(idx);
-              drawSkeleton(label, idx);
-            });
-
-      // redraw at frame 0
+      const rows  = dataByLabel[label];
+      const slider = d3.select('#frameSlider')
+        .attr('max', rows.length-1)
+        .on('input', ()=>{
+          const idx = +slider.property('value');
+          d3.select('#frameIndex').text(idx);
+          drawSkeleton(label, idx);
+        });
       d3.select('#frameIndex').text(0);
       drawSkeleton(label, 0);
     }
 
-    // 3) Draw the skeleton for label@frameIdx
     function drawSkeleton(label, idx) {
       const row = dataByLabel[label][idx];
-
-      // extract { joint: {x,y} }
       const coords = {};
       Object.keys(row).forEach(k => {
         if (k.endsWith('_x')) {
-          const name = k.slice(0, -2);
-          coords[name] = {
-            x: row[k],
-            y: row[name + '_y']
-          };
+          const n = k.slice(0,-2);
+          coords[n] = { x: row[k], y: row[n+'_y'] };
         }
       });
-
-      // clear previous
       const viz = d3.select('#viz');
       viz.selectAll('*').remove();
-
-      // new SVG
       const svg = viz.append('svg').attr('viewBox','0 0 1 1');
 
-      // draw bones
       svg.selectAll('line')
          .data(CONNECTIONS)
          .enter()
          .append('line')
-           .attr('x1', d => coords[d[0]].x)
-           .attr('y1', d => coords[d[0]].y)
-           .attr('x2', d => coords[d[1]].x)
-           .attr('y2', d => coords[d[1]].y)
-           .attr('stroke','#0ff')
-           .attr('stroke-width', 0.004);
+         .attr('x1', d=>coords[d[0]].x)
+         .attr('y1', d=>coords[d[0]].y)
+         .attr('x2', d=>coords[d[1]].x)
+         .attr('y2', d=>coords[d[1]].y)
+         .attr('stroke','#0ff')
+         .attr('stroke-width', 0.004);
 
-      // draw joints
       svg.selectAll('circle')
          .data(Object.values(coords))
          .enter()
          .append('circle')
-           .attr('cx', d => d.x)
-           .attr('cy', d => d.y)
-           .attr('r', 0.01)
-           .attr('fill','#0ff')
-           .attr('stroke','#fff')
-           .attr('stroke-width', 0.001);
+         .attr('cx', d=>d.x)
+         .attr('cy', d=>d.y)
+         .attr('r', 0.01)
+         .attr('fill','#0ff')
+         .attr('stroke','#fff')
+         .attr('stroke-width', 0.001);
     }
   </script>
-
 </body>
 </html>

@@ -1,64 +1,67 @@
 import io
 import pandas as pd
 import matplotlib.pyplot as plt
-from flask import Flask, render_template, request, send_file, url_for, redirect
-import os
+from flask import (
+    Flask, render_template, request,
+    send_file, url_for, redirect
+)
 
 app = Flask(__name__)
 
 # ── LOAD & CONFIG ──────────────────────────────────────────────────────
 DATA_FILE = "data.csv"
-# Load once at startup
-data = pd.read_csv(DATA_FILE)
-# Unique pose labels
+# Load once at startup and keep original frame indices
+data = pd.read_csv(f"static/{DATA_FILE}").reset_index()
+# 'index' column is now the frame index
 POSE_LABELS = data['label'].drop_duplicates().tolist()
 
-# Landmarks & connections (match your collect.py)
-LANDMARKS = [
-    'left_shoulder','right_shoulder','left_elbow','right_elbow',
-    'left_wrist','right_wrist','left_hip','right_hip',
-    'left_knee','right_knee','left_ankle','right_ankle'
-]
-CONNECTIONS = [
-    ('left_shoulder','left_elbow'), ('left_elbow','left_wrist'),
-    ('right_shoulder','right_elbow'),('right_elbow','right_wrist'),
-    ('left_shoulder','left_hip'),   ('right_shoulder','right_hip'),
-    ('left_hip','left_knee'),       ('left_knee','left_ankle'),
-    ('right_hip','right_knee'),     ('right_knee','right_ankle'),
-]
+# ── ROUTES ──────────────────────────────────────────────────────────────
 
 @app.route('/')
-def index():
-    # List all pose labels
-    return render_template('index.html', labels=POSE_LABELS)
+def main():
+    """Landing page with neon-retro branding & links."""
+    return render_template('main.html')
 
-@app.route('/pipeline')
-def pipeline():
-    return render_template('pipeline.html')
+@app.route('/gallery')
+def gallery():
+    """Listing of all poses (labels)."""
+    return render_template('gallery.html', labels=POSE_LABELS)
 
 @app.route('/pose/<label>')
 def pose_view(label):
-    # Filter rows for this label and preserve original frame index
-    df = data.reset_index()
-    df_label = df[df['label'] == label]
-    # List of frame indices
+    """Show first 30 frames + JS hook for loading more."""
+    df_label = data[data['label'] == label]
     frames = df_label['index'].tolist()
-    return render_template('pose.html', label=label, frames=frames)
+    first_frames = frames[:30]
+    remaining_frames = frames[30:]
+    return render_template(
+        'pose.html',
+        label=label,
+        first_frames=first_frames,
+        remaining_frames=remaining_frames,
+    )
 
 @app.route('/plot.png')
 def plot_png():
-    # Render skeleton for frame index N
+    """Draw a single skeleton frame as PNG."""
     frame = int(request.args.get('frame', 0))
-    row   = data.iloc[frame]
+    row   = data[data['index'] == frame].iloc[0]
 
     fig, ax = plt.subplots()
-    # Draw connections
+    # Draw bones
+    CONNECTIONS = [
+        ('left_shoulder','left_elbow'), ('left_elbow','left_wrist'),
+        ('right_shoulder','right_elbow'),('right_elbow','right_wrist'),
+        ('left_shoulder','left_hip'),   ('right_shoulder','right_hip'),
+        ('left_hip','left_knee'),       ('left_knee','left_ankle'),
+        ('right_hip','right_knee'),     ('right_knee','right_ankle'),
+    ]
     for a, b in CONNECTIONS:
-        x_vals = [row[f"{a}_x"], row[f"{b}_x"]]
-        y_vals = [row[f"{a}_y"], row[f"{b}_y"]]
-        ax.plot(x_vals, y_vals, 'o-', linewidth=3, markersize=6)
+        xs = [row[f"{a}_x"], row[f"{b}_x"]]
+        ys = [row[f"{a}_y"], row[f"{b}_y"]]
+        ax.plot(xs, ys, 'o-', linewidth=3, markersize=6)
 
-    ax.invert_yaxis()  # match image coords
+    ax.invert_yaxis()
     ax.axis('off')
 
     buf = io.BytesIO()
@@ -67,31 +70,24 @@ def plot_png():
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
-# Route to delete one frame by index
-@app.route('/delete_frame', methods=['POST'])
-def delete_frame():
-    frame = int(request.form['frame'])
-    label = request.form['label']
-    global data
-    # remove the row and rewrite CSV
-    data = data.drop(data.index[frame]).reset_index(drop=True)
-    data.to_csv(DATA_FILE, index=False)
-    return redirect(url_for('pose_view', label=label))
-
 @app.route('/delete_frames', methods=['POST'])
 def delete_frames():
-    # Get list of selected frame indices
+    """Bulk-delete selected frames and persist."""
     frames = list(map(int, request.form.getlist('frames')))
     label  = request.form['label']
     global data
-    # Drop them, reset index, write CSV
-    data = data.drop(index=frames).reset_index(drop=True)
+    data = data[~data['index'].isin(frames)].reset_index(drop=True)
     data.to_csv(DATA_FILE, index=False)
     return redirect(url_for('pose_view', label=label))
 
+@app.route('/pipeline')
+def pipeline():
+    """Your workflow-pipeline page."""
+    return render_template('pipeline.html')
+
 @app.route('/skeleton')
 def skeleton():
-    # this makes /static/data.csv available to the client
+    """Interactive skeleton viewer."""
     data_url = url_for('static', filename='data.csv')
     return render_template('skeleton_viewer.html', data_url=data_url)
 

@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Workflow Pipeline</title>
+  <title>🚀 Process Pipeline</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 </head>
 <body>
-  <a class="back" href="{{ url_for('index') }}">← Back to Gallery</a>
-  <h1 class="title">Pose Classification Pipeline</h1>
+  <nav class="main-nav">
+    <a href="{{ url_for('main') }}" class="nav-link">🏠 Home</a>
+  </nav>
+  <h1 class="title neon">Pose Classification Pipeline</h1>
 
   <section class="pipeline">
-
-    <!-- Step 1: Collect -->
+    <!-- Step 1 -->
     <div class="step" id="step-collect">
       <i class="fas fa-camera fa-3x"></i>
       <h2>1. Collect</h2>
@@ -29,14 +30,13 @@
         </ul>
       </div>
     </div>
-
     <div class="arrow" id="arrow1"><i class="fas fa-arrow-right fa-2x"></i></div>
 
-    <!-- Step 2: Train -->
+    <!-- Step 2 -->
     <div class="step" id="step-train">
       <i class="fas fa-robot fa-3x"></i>
       <h2>2. Train</h2>
-      <p>Load <code>data.csv</code>, engineer features, run stratified CV, and export <code>pose_clf.pkl</code>.</p>
+      <p>Engineer features, cross-validate, and export <code>pose_clf.pkl</code>.</p>
       <div class="details">
         <h3>Under the Hood</h3>
         <ul>
@@ -51,14 +51,13 @@
         </ul>
       </div>
     </div>
-
     <div class="arrow" id="arrow2"><i class="fas fa-arrow-right fa-2x"></i></div>
 
-    <!-- Step 3: Classify -->
+    <!-- Step 3 -->
     <div class="step" id="step-classify">
       <i class="fas fa-running fa-3x"></i>
       <h2>3. Classify</h2>
-      <p>Run real-time pose classification on webcam input, drawing skeleton and displaying pose & confidence.</p>
+      <p>Real-time webcam inference, draw skeleton & confidence.</p>
       <div class="details">
         <h3>Under the Hood</h3>
         <ul>
@@ -70,30 +69,26 @@
         </ul>
       </div>
     </div>
-
   </section>
 
   <script>
-    // Initial fade-in animation
     document.addEventListener('DOMContentLoaded', () => {
       anime.timeline({ loop: false })
-        .add({ targets: '#step-collect', opacity: [0,1], translateY: [20,0], duration: 800 })
-        .add({ targets: '#arrow1', opacity: [0,1], duration: 600 })
-        .add({ targets: '#step-train', opacity: [0,1], translateY: [20,0], duration: 800 })
-        .add({ targets: '#arrow2', opacity: [0,1], duration: 600 })
-        .add({ targets: '#step-classify', opacity: [0,1], translateY: [20,0], duration: 800 });
+        .add({ targets:'#step-collect', opacity:[0,1], translateY:[20,0], duration:800 })
+        .add({ targets:'#arrow1', opacity:[0,1], duration:600 })
+        .add({ targets:'#step-train', opacity:[0,1], translateY:[20,0], duration:800 })
+        .add({ targets:'#arrow2', opacity:[0,1], duration:600 })
+        .add({ targets:'#step-classify', opacity:[0,1], translateY:[20,0], duration:800 });
     });
 
-    // Toggle details visibility on click
     document.querySelectorAll('.step').forEach(step => {
-      step.style.cursor = 'pointer';
       step.addEventListener('click', () => {
-        const details = step.querySelector('.details');
-        const isHidden = details.classList.toggle('open');
+        const d = step.querySelector('.details');
+        const open = d.classList.toggle('open');
         anime({
-          targets: details,
-          height: isHidden ? [0, details.scrollHeight] : [details.scrollHeight, 0],
-          opacity: isHidden ? [0,1] : [1,0],
+          targets: d,
+          height: open ? [0,d.scrollHeight] : [d.scrollHeight,0],
+          opacity: open ? [0,1] : [1,0],
           easing: 'easeOutQuad',
           duration: 500
         });

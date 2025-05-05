@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>💃🕹️ Dance-to-Mine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <!-- PapaParse & D3 -->
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body class="main-page">
+
+  <!-- 1) full-screen background container -->
+  <div id="background">
+    <!-- 2) drop viewBox entirely -->
+    <svg id="bg-viz"></svg>
+  </div>
+
+  <!-- your centered neon content -->
+  <h1 class="title neon">💃 Dance-to-Mine 🕹️</h1>
+  <p>Control Minecraft with your moves—right from your webcam!</p>
+
+  <a href="{{ url_for('gallery') }}" class="btn">📷 Pose Gallery</a>
+  <a href="{{ url_for('pipeline') }}" class="btn">🚀 Pipeline</a>
+  <a href="{{ url_for('skeleton') }}" class="btn">💀 Skeleton Viewer</a>
+
+  <script>
+    const BACK_URL  = "{{ url_for('static', filename='animation.csv') }}";
+    const JOINTS    = [
+      'left_shoulder','right_shoulder',
+      'left_elbow','right_elbow',
+      'left_wrist','right_wrist',
+      'left_hip','right_hip',
+      'left_knee','right_knee',
+      'left_ankle','right_ankle'
+    ];
+    const CONNECTIONS = [
+      ['left_shoulder','left_elbow'], ['left_elbow','left_wrist'],
+      ['right_shoulder','right_elbow'], ['right_elbow','right_wrist'],
+      ['left_shoulder','right_shoulder'], ['left_shoulder','left_hip'],
+      ['right_shoulder','right_hip'], ['left_hip','right_hip'],
+      ['left_hip','left_knee'], ['left_knee','left_ankle'],
+      ['right_hip','right_knee'], ['right_knee','right_ankle']
+    ];
+
+    Papa.parse(BACK_URL, {
+      download: true,
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      complete: ({ data: frames }) => {
+        // 1) compute extents
+        const allXs = frames.flatMap(f => JOINTS.map(j => f[j + '_x']));
+        const allYs = frames.flatMap(f => JOINTS.map(j => f[j + '_y']));
+        const minX = d3.min(allXs), maxX = d3.max(allXs);
+        const minY = d3.min(allYs), maxY = d3.max(allYs);
+
+        // 2) scales
+        const W = window.innerWidth, H = window.innerHeight;
+        const xScale = d3.scaleLinear().domain([minX, maxX]).range([0, W]);
+        const yScale = d3.scaleLinear().domain([minY, maxY]).range([0, H]);
+
+        // 3) svg
+        const svg = d3.select('#bg-viz')
+          .attr('width', W)
+          .attr('height', H);
+
+        // bones & joints
+        svg.selectAll('line')
+          .data(CONNECTIONS)
+          .enter().append('line')
+          .attr('stroke', '#0ff').attr('stroke-width', 2);
+
+        svg.selectAll('circle')
+          .data(JOINTS)
+          .enter().append('circle')
+          .attr('r', 6).attr('fill', '#0ff')
+          .attr('stroke', '#fff').attr('stroke-width', 2);
+
+        // animation at 30 fps
+        const fps = 30;
+        const interval = 1000 / fps;
+        let idx = 0;
+
+        setInterval(() => {
+          const row = frames[idx];
+          // build a coords map for this frame
+          const coords = {};
+          JOINTS.forEach(j => {
+            coords[j] = { x: row[j + '_x'], y: row[j + '_y'] };
+          });
+
+          // update bones
+          svg.selectAll('line')
+            .data(CONNECTIONS)
+            .attr('x1', d => xScale(coords[d[0]].x))
+            .attr('y1', d => yScale(coords[d[0]].y))
+            .attr('x2', d => xScale(coords[d[1]].x))
+            .attr('y2', d => yScale(coords[d[1]].y));
+
+          // update joints
+          svg.selectAll('circle')
+            .data(JOINTS)
+            .attr('cx', d => xScale(coords[d].x))
+            .attr('cy', d => yScale(coords[d].y));
+
+          // advance frame index once
+          idx = (idx + 1) % frames.length;
+        }, interval);
+      }
+    });
+  </script>
+</body>
+</html>
