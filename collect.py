@@ -36,7 +36,7 @@ CONNECTIONS = [
     (mp.solutions.pose.PoseLandmark.RIGHT_HIP,     mp.solutions.pose.PoseLandmark.RIGHT_KNEE),
     (mp.solutions.pose.PoseLandmark.RIGHT_KNEE,    mp.solutions.pose.PoseLandmark.RIGHT_ANKLE),
 ]
-CSV_FILE = "data.csv"
+CSV_FILE = "static/data.csv"
 
 # ── UTILITIES ─────────────────────────────────────────────────────────────
 mp_pose = mp.solutions.pose

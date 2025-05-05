@@ -58,7 +58,7 @@ def temporal_deltas(prev, curr):
     return deltas.flatten()
 
 # ── LOAD DATA & INITIAL PROCESSING ───────────────────────────────────
-df = pd.read_csv("data.csv")
+df = pd.read_csv("static/data.csv")
 y = df["label"].values
 # Raw landmarks: shape (n_samples, n_landmarks*2)
 raw = df.drop("label", axis=1).values
