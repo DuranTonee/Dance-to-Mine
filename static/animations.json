@@ -1,0 +1,13 @@
+{
+  "t_pose": "Walk forward",
+  "disco_mine": "Break blocks",
+  "disco_right": "Look right",
+  "disco_left": "Look left",
+  "jump": "Jump",
+  "squat": "Toggle crouch",
+  "leg_right": "Scroll toolbar",
+  "leg_left": "Toggle sprint",
+  "hands_up": "Look up",
+  "hands_hips": "Look down",
+  "neutral": "Doing nothing... chilling..."
+}

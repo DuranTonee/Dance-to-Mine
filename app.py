@@ -10,10 +10,6 @@ app = Flask(__name__)
 
 # ── LOAD & CONFIG ──────────────────────────────────────────────────────
 DATA_FILE = "data.csv"
-# Load once at startup and keep original frame indices
-data = pd.read_csv(f"static/{DATA_FILE}").reset_index()
-# 'index' column is now the frame index
-POSE_LABELS = data['label'].drop_duplicates().tolist()
 
 # ── ROUTES ──────────────────────────────────────────────────────────────
 
@@ -25,6 +21,10 @@ def main():
 @app.route('/gallery')
 def gallery():
     """Listing of all poses (labels)."""
+    # Load once at startup and keep original frame indices
+    data = pd.read_csv(f"static/{DATA_FILE}").reset_index()
+    # 'index' column is now the frame index
+    POSE_LABELS = data['label'].drop_duplicates().tolist()
     return render_template('gallery.html', labels=POSE_LABELS)
 
 @app.route('/pose/<label>')
@@ -90,6 +90,14 @@ def skeleton():
     """Interactive skeleton viewer."""
     data_url = url_for('static', filename='data.csv')
     return render_template('skeleton_viewer.html', data_url=data_url)
+
+@app.route('/animations')
+def animations():
+    animation_data = pd.read_csv("static/animations.csv").reset_index()
+    ANIMATION_LABELS = animation_data['label'].drop_duplicates().tolist()
+    # get all labels except "disco_mine"
+    # other_labels = [l for l in ANIMATION_LABELS if l != 'disco_mine']
+    return render_template('animations.html', labels=ANIMATION_LABELS)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=6942, debug=True)

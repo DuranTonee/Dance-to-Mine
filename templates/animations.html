@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>All Animations</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body class="main-page">
+
+  <a href="{{ url_for('main') }}" class="btn-home btn">🏠 Home</a>
+  <h1 class="title neon">Existing actions</h1>
+
+  <!-- ── NEUTRAL (big) ──────────────────────────────────────────── -->
+  <div id="neutral-section" class="animation-neutral">
+    <svg id="viz-neutral" class="small-viz-neutral"></svg>
+    <div id="info-neutral" class="animation-info-neutral"></div>
+  </div>
+
+  <!-- ── OTHER ANIMATIONS GRID ──────────────────────────────────── -->
+  <div class="animation-grid">
+    {% for label in labels if label != 'neutral' %}
+    <div class="animation-item">
+      <svg id="viz-{{ label }}" class="small-viz"></svg>
+      <div id="info-{{ label }}" class="animation-info"></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    const BACK_URL = "{{ url_for('static', filename='animations.csv') }}";
+    const INFO_URL = "{{ url_for('static', filename='animations.json') }}";
+    const TARGETS  = {{ labels|tojson }};
+    const JOINTS   = [
+      'left_shoulder','right_shoulder','left_elbow','right_elbow',
+      'left_wrist','right_wrist','left_hip','right_hip',
+      'left_knee','right_knee','left_ankle','right_ankle'
+    ];
+    const CONNECTIONS = [
+      ['left_shoulder','left_elbow'], ['left_elbow','left_wrist'],
+      ['right_shoulder','right_elbow'], ['right_elbow','right_wrist'],
+      ['left_shoulder','right_shoulder'], ['left_shoulder','left_hip'],
+      ['right_shoulder','right_hip'], ['left_hip','right_hip'],
+      ['left_hip','left_knee'], ['left_knee','left_ankle'],
+      ['right_hip','right_knee'], ['right_knee','right_ankle']
+    ];
+
+    // load CSV
+    function parseCSV() {
+      return new Promise(resolve => {
+        Papa.parse(BACK_URL, {
+          download: true, header: true,
+          dynamicTyping: true, skipEmptyLines: true,
+          complete: resolve
+        });
+      });
+    }
+
+    // once both CSV+JSON are ready, kick off
+    Promise.all([
+      parseCSV(),
+      fetch(INFO_URL).then(r => r.json())
+    ]).then(([{ data }, infoMap]) => {
+      const framesByLabel = {};
+      TARGETS.forEach(l => {
+        framesByLabel[l] = data.filter(f => f.label === l);
+      });
+
+      // inject neutral
+      if (framesByLabel.neutral?.length) {
+        document.getElementById('info-neutral').textContent = infoMap.neutral || '';
+        drawAnimation('neutral', framesByLabel.neutral, true);
+      }
+
+      // inject others
+      TARGETS.filter(l => l !== 'neutral').forEach(label => {
+        if (!framesByLabel[label]?.length) return;
+        document.getElementById(`info-${label}`).textContent = infoMap[label] || '';
+        drawAnimation(label, framesByLabel[label], false);
+      });
+    });
+
+    // draw + animate with rAF (30fps throttle)
+    function drawAnimation(label, frames, isNeutral) {
+    const W = isNeutral ? 400 : 300;
+    const H = isNeutral ? 450 : 340;
+    const svg = d3.select(`#viz-${label}`)
+        .attr('width', W).attr('height', H);
+
+    // ── add label in top-left corner of the SVG ────────────────
+    svg.append('text')
+        .attr('class', 'anim-label')
+        .text(label)
+        .attr('x', 8)
+        .attr('y', 16)
+        .attr('fill', '#0ff')
+        .style('font-size', isNeutral ? '1.2rem' : '1rem')
+        .style('font-weight', 'bold')
+        .style('pointer-events', 'none');
+
+      // 1) precompute extents (joints + head)
+      const allXs = frames.flatMap(f => JOINTS.map(j => f[j + '_x']));
+      const allYs = frames.flatMap(f => JOINTS.map(j => f[j + '_y']));
+      const headL = [], headR = [], headT = [], headB = [];
+      frames.forEach(f => {
+        const ls = { x: f.left_shoulder_x,  y: f.left_shoulder_y };
+        const rs = { x: f.right_shoulder_x, y: f.right_shoulder_y };
+        const midX = (ls.x + rs.x) / 2;
+        const midY = (ls.y + rs.y) / 2;
+        const rNorm = Math.hypot(ls.x - rs.x, ls.y - rs.y) / 0.9;
+        headL.push(midX - rNorm);
+        headR.push(midX + rNorm);
+        headT.push(midY - rNorm);
+        headB.push(midY + rNorm);
+      });
+      const xMin = d3.min(allXs.concat(headL)),
+            xMax = d3.max(allXs.concat(headR)),
+            yMin = d3.min(allYs.concat(headT)),
+            yMax = d3.max(allYs.concat(headB));
+      const pad = 0.10;
+      const xRange = xMax - xMin, yRange = yMax - yMin;
+      const domX0 = xMin - xRange * pad,
+            domX1 = xMax + xRange * pad,
+            domY0 = yMin - yRange * pad,
+            domY1 = yMax + yRange * pad;
+
+      const xScale = d3.scaleLinear().domain([domX0, domX1]).range([0, W]);
+      const yScale = d3.scaleLinear().domain([domY0, domY1]).range([0, H]);
+
+      // 2) neon filter
+      const defs   = svg.append('defs');
+      const filter = defs.append('filter')
+        .attr('id', `neon-glow-${label}`)
+        .attr('x','-50%').attr('y','-50%')
+        .attr('width','200%').attr('height','200%');
+      filter.append('feGaussianBlur')
+        .attr('stdDeviation','3').attr('result','glow');
+      const fm = filter.append('feMerge');
+      fm.append('feMergeNode').attr('in','glow');
+      fm.append('feMergeNode').attr('in','SourceGraphic');
+
+      // 3) draw static elements once and cache selections
+      const boneLines = svg.selectAll('line')
+        .data(CONNECTIONS)
+        .enter().append('line')
+          .attr('stroke','#0ff').attr('stroke-width',1);
+
+      const jointCircles = svg.selectAll('circle.joint')
+        .data(JOINTS)
+        .enter().append('circle')
+          .attr('class','joint')
+          .attr('r',3)
+          .attr('fill','#0ff')
+          .attr('stroke','#fff')
+          .attr('stroke-width',1);
+
+      const headEmoji = svg.append('text')
+        .attr('class','head-emoji')
+        .text('😎')
+        .attr('text-anchor','middle')
+        .attr('dominant-baseline','middle')
+        .style('font-size','0px')
+        .style('filter',`url(#neon-glow-${label})`)
+        .style('fill','#0ff');
+
+      // 4) animate loop with throttle to ~30fps
+      let idx = 0;
+      const fps = 30;
+      const frameInterval = 1000 / fps;
+      let lastTime = 0;
+
+      function animate(now) {
+        if (!lastTime) lastTime = now;
+        const delta = now - lastTime;
+        if (delta >= frameInterval) {
+          lastTime = now - (delta % frameInterval);
+
+          // pull current frame
+          const row = frames[idx];
+          const coords = {};
+          JOINTS.forEach(j => {
+            coords[j] = { x: row[j + '_x'], y: row[j + '_y'] };
+          });
+
+          // update bones
+          boneLines
+            .attr('x1', d => xScale(coords[d[0]].x))
+            .attr('y1', d => yScale(coords[d[0]].y))
+            .attr('x2', d => xScale(coords[d[1]].x))
+            .attr('y2', d => yScale(coords[d[1]].y));
+
+          // update joints
+          jointCircles
+            .attr('cx', d => xScale(coords[d].x))
+            .attr('cy', d => yScale(coords[d].y));
+
+          // update head
+          const ls = coords.left_shoulder, rs = coords.right_shoulder;
+          const px_ls = xScale(ls.x), py_ls = yScale(ls.y);
+          const px_rs = xScale(rs.x), py_rs = yScale(rs.y);
+          const midX = (px_ls + px_rs) / 2;
+          const midY = (py_ls + py_rs) / 2;
+          const radius = Math.hypot(px_ls - px_rs, py_ls - py_rs) / 3.5;
+          const centerY = midY - radius;
+
+          headEmoji
+            .attr('x', midX)
+            .attr('y', centerY)
+            .style('font-size', `${radius * 1.8}px`);
+
+          idx = (idx + 1) % frames.length;
+        }
+        requestAnimationFrame(animate);
+      }
+
+      // kick off the animation
+      requestAnimationFrame(animate);
+    }
+  </script>
+</body>
+</html>
