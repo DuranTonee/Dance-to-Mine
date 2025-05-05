@@ -1,4 +1,4 @@
-# Pose2Minecraft
+# Dance-to-Mine
 
 **TODOs**  
 - [ ] Define and implement pose → Minecraft action mappings  
@@ -10,7 +10,7 @@
 
 ## Description
 
-Pose2Minecraft (very original, huh?) is a Python-based dance-move recognition pipeline that turns your body poses into game actions - focused on controlling (initially) Minecraft via MediaPipe landmarks and a RandomForest model. Inspired by Fundy's [Coding Minecraft to work with Dance Moves...](https://www.youtube.com/watch?v=z2sGFFXuu38)
+Dance-to-Mine (very original, huh?) is a Python-based dance-move recognition pipeline that turns your body poses into game actions - focused on controlling (initially) Minecraft via MediaPipe landmarks and a RandomForest model. Inspired by Fundy's [Coding Minecraft to work with Dance Moves...](https://www.youtube.com/watch?v=z2sGFFXuu38)
 
 ---
 
@@ -39,8 +39,8 @@ Pose2Minecraft (very original, huh?) is a Python-based dance-move recognition pi
 
 ```bash
 # Clone the repo
-git clone https://github.com/DuranTonee/Pose2Minecraft.git
-cd Pose2Minecraft
+git clone https://github.com/DuranTonee/Dance-to-Mine.git
+cd Dance-to-Mine
 
 # Create & activate virtual environment
 python -m venv venv
@@ -93,7 +93,7 @@ $ python app.py
 
 ## Project Structure
 ```
-Pose2Minecraft/
+Dance-to-Mine/
 ├── collect.py                 # Data collection script
 ├── train.py                   # Feature engineering & model training
 ├── classify.py                # Real-time pose classification
