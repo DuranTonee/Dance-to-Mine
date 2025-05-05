@@ -6,8 +6,19 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  <style>
+    #particles-js {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+    }
+  </style>
 </head>
 <body class="main-page">
+  <div id="particles-js"></div>
 
   <a href="{{ url_for('main') }}" class="btn-home btn">🏠 Home</a>
   <h1 class="title neon">Existing actions</h1>
@@ -29,6 +40,27 @@
   </div>
 
   <script>
+    particlesJS("particles-js", {
+        "particles": {
+            "number": { "value": 80 },
+            "color": { "value": "#0ff" },
+            "shape": { "type": "circle" },
+            "opacity": {
+            "value": 0.5,
+            "random": true
+            },
+            "size": {
+            "value": 4,
+            "random": true
+            },
+            "move": {
+            "enable": true,
+            "speed": 2
+            }
+        },
+        "retina_detect": true
+    });
+
     const BACK_URL = "{{ url_for('static', filename='animations.csv') }}";
     const INFO_URL = "{{ url_for('static', filename='animations.json') }}";
     const TARGETS  = {{ labels|tojson }};
@@ -166,13 +198,14 @@
 
       // 4) animate loop with throttle to ~30fps
       let idx = 0;
-      const fps = 30;
-      const frameInterval = 1000 / fps;
+      let baseFps = 30;
+      let frameInterval = 1000 / baseFps;
       let lastTime = 0;
 
       function animate(now) {
         if (!lastTime) lastTime = now;
         const delta = now - lastTime;
+        frameInterval = 1000 / (document.body.classList.contains('disco-mode') ? baseFps * 3 : baseFps);
         if (delta >= frameInterval) {
           lastTime = now - (delta % frameInterval);
 
@@ -217,6 +250,20 @@
       // kick off the animation
       requestAnimationFrame(animate);
     }
+
+    let keyBuffer = [];
+
+
+    document.addEventListener('keydown', e => {
+        keyBuffer.push(e.key.toLowerCase());
+        if (keyBuffer.length > 5) keyBuffer.shift(); // keep only last 5 chars
+
+        const typed = keyBuffer.join('');
+        if (typed === 'dance' || typed === 'disco') {
+            document.body.classList.toggle('disco-mode');
+        }
+    });
+
   </script>
 </body>
 </html>

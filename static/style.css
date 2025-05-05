@@ -302,7 +302,7 @@ input[type=range] {
   padding: 12px;
   border: 2px solid #0ff;
   border-radius: 8px;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.7);
   box-shadow: 0 0 12px #0ff;
 }
 .animation-card h2 {
@@ -341,6 +341,7 @@ input[type=range] {
   padding: 20px;
   margin-bottom: 30px;
   border-radius: 8px;
+  background: rgba(0, 0, 0, 0.7);
 }
 .small-viz-neutral {
   width: 400px;
@@ -361,7 +362,7 @@ input[type=range] {
 .animation-item {
   display: flex;
   align-items: center;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.7);
   padding: 12px;
   border: 2px solid #0ff;
   border-radius: 8px;
@@ -383,4 +384,18 @@ input[type=range] {
 
 .anim-label, .animation-info, .animation-info-neutral{
   text-shadow: 0 0 4px #0ff; /* neon glow */
+}
+
+.animation-item:hover {
+  transform: scale(1.05) rotate(-1deg);
+  transition: all 0.3s ease;
+  box-shadow: 0 0 24px #0ff, 0 0 48px #0ff;
+}
+
+.disco-mode * {
+  animation: disco-border 0.2s infinite alternate;
+}
+@keyframes disco-border {
+  from { box-shadow: 0 0 10px red; }
+  to   { box-shadow: 0 0 10px lime; }
 }
