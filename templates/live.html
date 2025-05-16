@@ -23,7 +23,7 @@
     /* make skeleton-box square */
     #skeleton-box {
       width: 600px;
-      height: 600px;    /* was 800px */
+      height: 600px;
       border: 3px solid #0ff;
       border-radius: 8px;
       background: rgba(0,0,0,0.7);
@@ -32,7 +32,7 @@
     /* neutral animation */
     #viz-neutral {
       width: 600px;
-      height: 600px;    /* match box */
+      height: 600px;
     }
     #info-neutral {
       position: absolute;
@@ -53,7 +53,7 @@
     /* info on right */
     .info-box {
       width: 400px;
-      height: 600px;    /* was 800px */
+      height: 600px;
       border: 3px solid #0ff;
       border-radius: 8px;
       background: rgba(0,0,0,0.7);
@@ -97,6 +97,7 @@
   </style>
 </head>
 <body class="main-page">
+  <a href="{{ url_for('animations') }}" class="btn-home btn">Back to animations</a>
   <div class="live-container">
     <!-- LEFT: BIG SKELETON BOX -->
     <div id="skeleton-box">
@@ -120,355 +121,257 @@
   </div>
 
   <script>
-    let lastPose   = null;
-    let lastNote   = "";
+    // ── Note management ───────────────────────────────────────────────
+    let lastPose = null;
+    let lastNote = "";
     const updownHist = [];
-
-    let rawLast      = null,
-        rawStart     = 0,
-        stablePred   = null;
-
-    const IGNORE_MS = 300;
-
     let poseNotes = {};
     fetch('{{ url_for("static", filename="pose_notes.json") }}')
-        .then(r => r.json())
-        .then(data => { poseNotes = data; });
-
+      .then(r => r.json())
+      .then(data => poseNotes = data);
     function randomNoteFor(p) {
-        const arr = poseNotes[p] || [];
-        return arr[Math.floor(Math.random() * arr.length)] || '';
+      const arr = poseNotes[p] || [];
+      return arr[Math.floor(Math.random() * arr.length)] || "";
     }
 
-    // ── 1) LOAD & PLAY NEUTRAL ANIMATION ────────────────────────────────
+    // ── 1) LOAD & PLAY NEUTRAL ANIMATION ───────────────────────────────
     const BACK_URL = "{{ url_for('static', filename='animations.csv') }}";
     const INFO_URL = "{{ url_for('static', filename='animations.json') }}";
     function parseCSV() {
-        return new Promise(res => {
+      return new Promise(res => {
         Papa.parse(BACK_URL, {
-            download: true, header: true,
-            dynamicTyping: true, skipEmptyLines: true,
-            complete: res
+          download: true, header: true,
+          dynamicTyping: true, skipEmptyLines: true,
+          complete: res
         });
-        });
+      });
     }
     Promise.all([
-        parseCSV(),
-        fetch(INFO_URL).then(r => r.json())
+      parseCSV(),
+      fetch(INFO_URL).then(r => r.json())
     ]).then(([{ data }, infoMap]) => {
-        const frames = data.filter(f => f.label === 'neutral');
-        if (!frames.length) return;
-        document.getElementById('info-neutral').textContent = infoMap.neutral || '';
-        drawAnimation('neutral', frames, true);
+      const frames = data.filter(f => f.label === 'neutral');
+      if (!frames.length) return;
+      document.getElementById('info-neutral').textContent = infoMap.neutral || '';
+      drawAnimation('neutral', frames, true);
     });
 
-    // ── 2) SET UP LIVE-VIZ FOR REAL-TIME SKELETON + EMOJI ───────────────
-    const LIVE_W = 600, LIVE_H = 600;   // height now equals width
+    // ── 2) SET UP LIVE-VIZ ─────────────────────────────────────────────
+    const LIVE_W = 600, LIVE_H = 600;
     const svgLive = d3.select('#live-viz')
-        .attr('width', LIVE_W).attr('height', LIVE_H);
+      .attr('width', LIVE_W).attr('height', LIVE_H);
     // invert the x‐scale so skeleton isn’t mirrored
     const xScaleLive = d3.scaleLinear().domain([0,1]).range([0, LIVE_W]);
     const yScaleLive = d3.scaleLinear().domain([0,1]).range([0, LIVE_H]);
-    // neon-glow filter
+    
     const defsLive = svgLive.append('defs');
     const filterLive = defsLive.append('filter')
-        .attr('id','neon-glow-live')
-        .attr('x','-50%').attr('y','-50%')
-        .attr('width','200%').attr('height','200%');
+      .attr('id','neon-glow-live')
+      .attr('x','-50%').attr('y','-50%')
+      .attr('width','200%').attr('height','200%');
     filterLive.append('feGaussianBlur').attr('stdDeviation','3').attr('result','glow');
     filterLive.append('feMerge')
-        .selectAll('feMergeNode')
-        .data(['glow','SourceGraphic'])
-        .enter().append('feMergeNode').attr('in', d => d);
+      .selectAll('feMergeNode')
+      .data(['glow','SourceGraphic'])
+      .enter().append('feMergeNode').attr('in', d => d);
 
     const boneGroup  = svgLive.append('g').attr('class','bones');
     const jointGroup = svgLive.append('g').attr('class','joints');
     const headEmojiLive = svgLive.append('text')
-        .attr('class','head-emoji')
-        .text('😎')
-        .attr('text-anchor','middle')
-        .attr('dominant-baseline','middle')
-        .style('filter','url(#neon-glow-live)')
-        .style('fill','#0ff')
-        .style('font-size','0px');
+      .attr('class','head-emoji')
+      .text('😎')
+      .attr('text-anchor','middle')
+      .attr('dominant-baseline','middle')
+      .style('filter','url(#neon-glow-live)')
+      .style('fill','#0ff')
+      .style('font-size','0px');
 
     let liveInitialized = false;
     function updateLiveViz(landmarks, connections) {
-        if (!liveInitialized) {
-        // draw bones
+      if (!liveInitialized) {
         boneGroup.selectAll('line')
-        .data(connections)
-        .enter().append('line')
-            .attr('stroke','#0ff')
-            .attr('stroke-width',2);
-
-        // ── draw a dot at each joint ────────────────────────────────
+          .data(connections)
+          .enter().append('line')
+            .attr('stroke','#0ff').attr('stroke-width',2);
         jointGroup.selectAll('circle')
-        .data(landmarks)
-        .enter().append('circle')
+          .data(landmarks)
+          .enter().append('circle')
             .attr('class','joint-live')
-            .attr('r',4)                     // small radius
+            .attr('r',4)
             .attr('fill','#0ff')
             .attr('stroke','#fff')
             .attr('stroke-width',1);
-        // ────────────────────────────────────────────────────────────
-
         liveInitialized = true;
-    }
-
-    // update bones as before…
-    boneGroup.selectAll('line')
+      }
+      boneGroup.selectAll('line')
         .attr('x1', d => xScaleLive(landmarks[d[0]].x))
         .attr('y1', d => yScaleLive(landmarks[d[0]].y))
         .attr('x2', d => xScaleLive(landmarks[d[1]].x))
         .attr('y2', d => yScaleLive(landmarks[d[1]].y));
-
-    // update dot positions
-    jointGroup.selectAll('circle')
+      jointGroup.selectAll('circle')
         .attr('cx', (_,i) => xScaleLive(landmarks[i].x))
         .attr('cy', (_,i) => yScaleLive(landmarks[i].y));
-
-    // head emoji
-    const ls = landmarks[0], rs = landmarks[1];
-    const midX = (ls.x + rs.x)/2, midY = (ls.y + rs.y)/2;
-    const pxLS = xScaleLive(ls.x), pyLS = yScaleLive(ls.y);
-    const pxRS = xScaleLive(rs.x), pyRS = yScaleLive(rs.y);
-    const radius = Math.hypot(pxLS - pxRS, pyLS - pyRS)/3.5;
-    headEmojiLive
-      .attr('x', xScaleLive(midX))
-      .attr('y', yScaleLive(midY) - radius)
-      .style('font-size', `${radius * 1.8}px`);
-  }
-
-  function drawAnimation(label, frames, isNeutral) {
-    const W = isNeutral ? 400 : 300;
-    const H = isNeutral ? 450 : 340;
-    const svg = d3.select(`#viz-${label}`)
-        .attr('width', W).attr('height', H);
-
-    // add label in top-left
-    svg.append('text')
-       .attr('class','anim-label')
-       .text(label)
-       .attr('x', 8).attr('y', 16)
-       .attr('fill', '#0ff')
-       .style('font-size', isNeutral ? '1.2rem' : '1rem')
-       .style('font-weight','bold')
-       .style('pointer-events','none');
-
-    // compute extents & scales
-    const JOINTS = [
-      'left_shoulder','right_shoulder','left_elbow','right_elbow',
-      'left_wrist','right_wrist','left_hip','right_hip',
-      'left_knee','right_knee','left_ankle','right_ankle'
-    ];
-    const allXs = frames.flatMap(f => JOINTS.map(j => f[j + '_x']));
-    const allYs = frames.flatMap(f => JOINTS.map(j => f[j + '_y']));
-    // head extents
-    const headL = [], headR = [], headT = [], headB = [];
-    frames.forEach(f => {
-      const ls = { x: f.left_shoulder_x, y: f.left_shoulder_y };
-      const rs = { x: f.right_shoulder_x, y: f.right_shoulder_y };
+      const ls = landmarks[0], rs = landmarks[1];
       const midX = (ls.x + rs.x)/2, midY = (ls.y + rs.y)/2;
-      const rNorm = Math.hypot(ls.x-rs.x, ls.y-rs.y)/0.9;
-      headL.push(midX - rNorm);
-      headR.push(midX + rNorm);
-      headT.push(midY - rNorm);
-      headB.push(midY + rNorm);
-    });
-    const xMin = d3.min(allXs.concat(headL)),
-          xMax = d3.max(allXs.concat(headR)),
-          yMin = d3.min(allYs.concat(headT)),
-          yMax = d3.max(allYs.concat(headB));
-    const pad = 0.1;
-    const xRange = xMax - xMin, yRange = yMax - yMin;
-    const domX0 = xMin - xRange*pad, domX1 = xMax + xRange*pad;
-    const domY0 = yMin - yRange*pad, domY1 = yMax + yRange*pad;
-    const xScale = d3.scaleLinear().domain([domX0, domX1]).range([0, W]);
-    const yScale = d3.scaleLinear().domain([domY0, domY1]).range([0, H]);
+      const pxLS = xScaleLive(ls.x), pyLS = yScaleLive(ls.y);
+      const pxRS = xScaleLive(rs.x), pyRS = yScaleLive(rs.y);
+      const radius = Math.hypot(pxLS - pxRS, pyLS - pyRS)/3.5;
+      headEmojiLive
+        .attr('x', xScaleLive(midX))
+        .attr('y', yScaleLive(midY) - radius)
+        .style('font-size', `${radius * 1.8}px`);
+    }
 
-    // neon glow filter
-    const defs = svg.append('defs');
-    const filter = defs.append('filter')
-      .attr('id', `neon-glow-${label}`)
-      .attr('x','-50%').attr('y','-50%')
-      .attr('width','200%').attr('height','200%');
-    filter.append('feGaussianBlur')
-      .attr('stdDeviation','3').attr('result','glow');
-    filter.append('feMerge')
-      .selectAll('feMergeNode')
-      .data(['glow','SourceGraphic'])
-      .enter().append('feMergeNode')
-        .attr('in', d => d);
-
-    // draw bones & joints once
-    const CONNECTIONS = [
-      ['left_shoulder','left_elbow'], ['left_elbow','left_wrist'],
-      ['right_shoulder','right_elbow'], ['right_elbow','right_wrist'],
-      ['left_shoulder','right_shoulder'], ['left_shoulder','left_hip'],
-      ['right_shoulder','right_hip'], ['left_hip','right_hip'],
-      ['left_hip','left_knee'], ['left_knee','left_ankle'],
-      ['right_hip','right_knee'], ['right_knee','right_ankle']
-    ];
-    const boneLines = svg.selectAll('line')
-        .data(CONNECTIONS)
-        .enter().append('line')
-          .attr('stroke','#0ff').attr('stroke-width',1);
-    const jointCircles = svg.selectAll('circle.joint')
-        .data(JOINTS)
-        .enter().append('circle.joint')
-          .attr('r',3).attr('fill','#0ff')
-          .attr('stroke','#fff').attr('stroke-width',1);
-
-    // head emoji
-    const headEmoji = svg.append('text')
-        .attr('class','head-emoji')
-        .text('😎')
-        .attr('text-anchor','middle')
-        .attr('dominant-baseline','middle')
-        .style('font-size','0px')
-        .style('filter',`url(#neon-glow-${label})`)
-        .style('fill','#0ff');
-
-    // animate at ~30fps
-    let idx=0, lastTime=0, baseFps=30;
-    function animate(now) {
-      if (!lastTime) lastTime = now;
-      const delta = now - lastTime;
-      const interval = 1000/baseFps;
-      if (delta >= interval) {
-        lastTime = now - (delta % interval);
-        const row = frames[idx++];
-        if (idx >= frames.length) idx = 0;
-        // update bones
-        CONNECTIONS.forEach((c,i) => {
-          boneLines.filter((d, j) => i===j)
-            .attr('x1', xScale(row[c[0]+'_x']))
-            .attr('y1', yScale(row[c[0]+'_y']))
-            .attr('x2', xScale(row[c[1]+'_x']))
-            .attr('y2', yScale(row[c[1]+'_y']));
-        });
-        // update joints
-        JOINTS.forEach((j,i) => {
-          jointCircles.filter((d, k) => i===k)
-            .attr('cx', xScale(row[j+'_x']))
-            .attr('cy', yScale(row[j+'_y']));
-        });
-        // head
-        const ls = { x: row.left_shoulder_x,  y: row.left_shoulder_y };
-        const rs = { x: row.right_shoulder_x, y: row.right_shoulder_y };
-        const px_ls = xScale(ls.x), py_ls = yScale(ls.y);
-        const px_rs = xScale(rs.x), py_rs = yScale(rs.y);
-        const midX = (px_ls+px_rs)/2, midY = (py_ls+py_rs)/2;
-        const radius = Math.hypot(px_ls-px_rs,py_ls-py_rs)/3.5;
-        headEmoji
-          .attr('x', midX)
-          .attr('y', midY - radius)
-          .style('font-size', `${radius*1.8}px`);
+    // ── 3) DRAW NEUTRAL ANIMATION ──────────────────────────────────────
+    function drawAnimation(label, frames, isNeutral) {
+      const W = isNeutral ? 400 : 300;
+      const H = isNeutral ? 450 : 340;
+      const svg = d3.select(`#viz-${label}`)
+          .attr('width', W).attr('height', H);
+      svg.append('text')
+         .attr('class','anim-label')
+         .text(label)
+         .attr('x', 8).attr('y', 16)
+         .attr('fill', '#0ff')
+         .style('font-size', isNeutral ? '1.2rem' : '1rem')
+         .style('font-weight','bold')
+         .style('pointer-events','none');
+      const JOINTS = ['left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle'];
+      const allXs = frames.flatMap(f => JOINTS.map(j => f[j + '_x']));
+      const allYs = frames.flatMap(f => JOINTS.map(j => f[j + '_y']));
+      const headL = [], headR = [], headT = [], headB = [];
+      frames.forEach(f => {
+        const ls = { x: f.left_shoulder_x, y: f.left_shoulder_y };
+        const rs = { x: f.right_shoulder_x, y: f.right_shoulder_y };
+        const midX = (ls.x + rs.x)/2, midY = (ls.y + rs.y)/2;
+        const rNorm = Math.hypot(ls.x-rs.x, ls.y-rs.y)/0.9;
+        headL.push(midX - rNorm);
+        headR.push(midX + rNorm);
+        headT.push(midY - rNorm);
+        headB.push(midY + rNorm);
+      });
+      const xMin = d3.min(allXs.concat(headL)), xMax = d3.max(allXs.concat(headR));
+      const yMin = d3.min(allYs.concat(headT)), yMax = d3.max(allYs.concat(headB));
+      const pad = 0.1;
+      const xRange = xMax - xMin, yRange = yMax - yMin;
+      const domX0 = xMin - xRange*pad, domX1 = xMax + xRange*pad;
+      const domY0 = yMin - yRange*pad, domY1 = yMax + yRange*pad;
+      const xS = d3.scaleLinear().domain([domX0, domX1]).range([0, W]);
+      const yS = d3.scaleLinear().domain([domY0, domY1]).range([0, H]);
+      const defs = svg.append('defs');
+      const filter = defs.append('filter')
+        .attr('id', `neon-glow-${label}`)
+        .attr('x','-50%').attr('y','-50%')
+        .attr('width','200%').attr('height','200%');
+      filter.append('feGaussianBlur').attr('stdDeviation','3').attr('result','glow');
+      filter.append('feMerge')
+        .selectAll('feMergeNode')
+        .data(['glow','SourceGraphic'])
+        .enter().append('feMergeNode').attr('in', d => d);
+      const CONNECTIONS = [['left_shoulder','left_elbow'],['left_elbow','left_wrist'],['right_shoulder','right_elbow'],['right_elbow','right_wrist'],['left_shoulder','right_shoulder'],['left_shoulder','left_hip'],['right_shoulder','right_hip'],['left_hip','right_hip'],['left_hip','left_knee'],['left_knee','left_ankle'],['right_hip','right_knee'],['right_knee','right_ankle']];
+      const boneLines = svg.selectAll('line').data(CONNECTIONS).enter().append('line').attr('stroke','#0ff').attr('stroke-width',1);
+      const jointCircles = svg.selectAll('circle.joint').data(JOINTS).enter().append('circle').attr('class', 'joint').attr('r',3).attr('fill','#0ff').attr('stroke','#fff').attr('stroke-width',1);
+      const headEmoji = svg.append('text').attr('class','head-emoji').text('😎').attr('text-anchor','middle').attr('dominant-baseline','middle').style('font-size','0px').style('filter',`url(#neon-glow-${label})`).style('fill','#0ff');
+      let idx=0, lastTime=0,
+      // neutral animation at 30fps, others at 60fps:
+      baseFps = isNeutral ? 30 : 60;      function animate(now) {
+        if (!lastTime) lastTime = now;
+        const delta = now - lastTime;
+        const interval = 1000/baseFps;
+        if (delta >= interval) {
+          lastTime = now - (delta % interval);
+          const row = frames[idx++]; if (idx >= frames.length) idx = 0;
+          CONNECTIONS.forEach((c,i) => {
+            boneLines.filter((d,j) => i===j).attr('x1', xS(row[c[0]+'_x'])).attr('y1', yS(row[c[0]+'_y'])).attr('x2', xS(row[c[1]+'_x'])).attr('y2', yS(row[c[1]+'_y']));
+          });
+          JOINTS.forEach((j,i) => {
+            jointCircles.filter((d,k) => i===k).attr('cx', xS(row[j+'_x'])).attr('cy', yS(row[j+'_y']));
+          });
+          const ls2 = { x: row.left_shoulder_x, y: row.left_shoulder_y };
+          const rs2 = { x: row.right_shoulder_x, y: row.right_shoulder_y };
+          const px_ls = xS(ls2.x), py_ls = yS(ls2.y);
+          const px_rs2 = xS(rs2.x), py_rs2 = yS(rs2.y);
+          const midX2 = (px_ls+px_rs2)/2, midY2 = (py_ls+py_rs2)/2;
+          const r2 = Math.hypot(px_ls-px_rs2,py_ls-py_rs2)/3.5;
+          headEmoji.attr('x', midX2).attr('y', midY2 - r2).style('font-size', `${r2*1.8}px`);
+        }
+        requestAnimationFrame(animate);
       }
       requestAnimationFrame(animate);
     }
-    requestAnimationFrame(animate);
-  }
 
-  // ── 3) CAMERA LOOP & START/STOP ────────────────────────────────────
-  const startBtn  = document.getElementById('start-btn');
-  const poseName  = document.getElementById('pose-name');
-  const poseSample= document.getElementById('pose-sample');
-  let video, stream, running = false;
+    // ── 4) CAMERA LOOP & START/STOP ───────────────────────────────────
+    const startBtn = document.getElementById('start-btn');
+    const poseName = document.getElementById('pose-name');
+    const poseSample = document.getElementById('pose-sample');
+    let video, stream, running = false;
+    startBtn.addEventListener('click', async () => {
+      if (!running) {
+        d3.select('#viz-neutral').style('display','none');
+        d3.select('#info-neutral').style('display','none');
+        document.getElementById('live-viz').style.display = 'block';
+        poseName.style.display = 'block';
+        poseSample.style.display = 'block';
+        stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+            width: 320,
+            height: 240,
+            frameRate: { ideal: 60, max: 60 }
+        }
+        });
+        video = document.createElement('video');
+        video.srcObject = stream;
+        await video.play();
+        running = true;
+        startBtn.textContent = 'Stop';
+        captureLoop();
+      } else {
+        running = false;
+        startBtn.textContent = 'Start';
+        stream.getTracks().forEach(t => t.stop());
+        d3.select('#viz-neutral').style('display', null);
+        d3.select('#info-neutral').style('display', null);
+        document.getElementById('live-viz').style.display = 'none';
+        poseName.textContent = '';
+      }
+    });
 
-  startBtn.addEventListener('click', async () => {
-    if (!running) {
-      // hide neutral, show live
-      d3.select('#viz-neutral').style('display','none');
-      d3.select('#info-neutral').style('display','none');
-      document.getElementById('live-viz').style.display = 'block';
-
-      poseName.style.display   = 'block';
-      poseSample.style.display = 'block';
-
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video  = document.createElement('video');
-      video.srcObject = stream;
-      await video.play();
-
-      running = true;
-      startBtn.textContent = 'Stop';
-      captureLoop();
-    } else {
-      running = false;
-      startBtn.textContent = 'Start';
-      stream.getTracks().forEach(t => t.stop());
-      d3.select('#viz-neutral').style('display',null);
-      d3.select('#info-neutral').style('display',null);
-      document.getElementById('live-viz').style.display = 'none';
-      poseName.textContent   = '';
-    }
-  });
-
-  async function captureLoop() {
-    if (!running) return;
-    const tmp = document.createElement('canvas');
-    tmp.width = LIVE_W; tmp.height = LIVE_H;
-    const ctx = tmp.getContext('2d');
-    ctx.translate(LIVE_W, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, LIVE_W, LIVE_H);
-
-    const imgData = tmp.toDataURL('image/jpeg');
-    try {
-      const res = await axios.post(
-        '{{ url_for("classify_frame") }}',
-        { image: imgData }
-      );
-      const { landmarks, connections, pred } = res.data;
-      updateLiveViz(landmarks, connections);
-      poseName.textContent = pred || '';
-      
-      let noteToShow;
-      // only pick a new note when the pose actually changes
-      if (pred !== lastPose) {
-        if (pred === 'disco_up' || pred === 'disco_down') {
+    async function captureLoop() {
+      if (!running) return;
+      const tmp = document.createElement('canvas');
+      tmp.width = LIVE_W; tmp.height = LIVE_H;
+      const ctx = tmp.getContext('2d');
+      ctx.translate(LIVE_W, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, LIVE_W, LIVE_H);
+      const imgData = tmp.toDataURL('image/jpeg');
+      try {
+        const res = await axios.post('{{ url_for("classify_frame") }}', { image: imgData });
+        const { landmarks, connections, pred } = res.data;
+        let conns = res.data.connections.slice();
+        conns.push([0,1], [6,7]);
+        updateLiveViz(res.data.landmarks, conns);
+        poseName.textContent = pred || '';
+        if (pred !== lastPose) {
+          if (pred === 'disco_up' || pred === 'disco_down') {
             updownHist.push(pred);
-            // check for the 4-step combo
-            if (updownHist.slice(-4).join(',') === 
-                'disco_up,disco_down,disco_up,disco_down') {
-            lastNote = randomNoteFor('disco_combo');
+            if (updownHist.slice(-4).join(',') === 'disco_up,disco_down,disco_up,disco_down') {
+              lastNote = randomNoteFor('disco_combo');
             } else {
-            lastNote = randomNoteFor(pred);
+              lastNote = randomNoteFor(pred);
             }
-        } else {
-            // any other pose resets the disco history
+          } else {
             updownHist.length = 0;
             lastNote = randomNoteFor(pred);
+          }
+          lastPose = pred;
         }
-        lastPose = pred;
-    }
-
         poseSample.textContent = lastNote;
-
-      if (pred === 'disco_up' || pred === 'disco_down') {
-        updownHist.push(pred);
-        // check last 4 for the special combo
-        if (updownHist.slice(-4).join(',') === 'disco_up,disco_down,disco_up,disco_down') {
-        note = randomNoteFor('disco_combo');
-        } else {
-        note = randomNoteFor(pred);
-        }
-    } else {
-        // clear history when any other pose lands
-        updownHist.length = 0;
-        note = randomNoteFor(pred);
+      } catch(e) {
+        console.error(e);
+      }
+      requestAnimationFrame(() => captureLoop());
     }
-
-    // display it
-    poseSample.textContent = note;
-
-    } catch(e) {
-      console.error(e);
-    }
-    setTimeout(captureLoop, 100);
-  }
   </script>
 
   <!-- axios must come last -->

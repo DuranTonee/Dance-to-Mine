@@ -1,63 +1,101 @@
 {
-    "t_pose": [
-      "Feeling mighty? W forward, soldier! 🏃‍♂️",
-      "Strictly business—strut like you own the place!",
-      "Pose so T-rrific even blocks salute you!"
-    ],
-    "dab": [
-      "Charging lasers… fire! 💥",
-      "Dab = one more swing of your magical sword!",
-      "When in doubt, just dab it out—attack mode!"
-    ],
-    "jump": [
-      "Boing! Next stop: cloud nine.",
-      "Jumping over creepers like a pro ninja!",
-      "Defying gravity (and fashion) with style."
-    ],
-    "squat": [
-      "Crouch activated—stealth level: expert.",
-      "Ctrl-crouch: now 50% cooler, 100% sneakier.",
-      "Duck and weave… or just take a breather."
-    ],
-    "leg_right": [
-      "Scrolling toolbar—leg-day meets code-day.",
-      "Right leg engaged: navigating menus like a boss!",
-      "Leg-powered UI: faster than a mouse."
-    ],
-    "leg_left": [
-      "Shift sprint—left leg, meet warp speed! ⚡",
-      "Toggle sprint: left leg says ‘giddy up’!",
-      "Ready, set, sprint—left leg endorses chaos."
-    ],
-    "hands_up": [
-      "Look up—seeking inspiration or just clouds?",
-      "Heads-up! Vertical view unlocked.",
-      "Sky’s the limit—literally!"
-    ],
-    "hands_hips": [
-      "Look down—plotting your next grand escape!",
-      "Hip check activated—looking low and tough.",
-      "Scanning floor for dropped loot…"
-    ],
     "neutral": [
-      "Just chilling—world domination can wait.",
-      "Neutral vibes: 0% action, 100% zen.",
-      "Relax mode: no keys pressed, no worries."
+      "Statue mode: if only being still healed your dwindling hunger bar",
+      "Neutral vibes: because nothing says 'I'm prepared' like inaction",
+      "Doing nothing... chilling... perfect for when creepers decide to cuddle",
+      "Zen AFK: mastering the art of doing absolutely nothing",
+      "Idle stance: finally a pose that matches your Minecraft skills"
     ],
     "disco_up": [
-      "Boogie up! Sparkle your way north.",
-      "Disco up—moonwalk not included.",
-      "Raise those arms—it’s dance o’clock!"
+      "Raise the roof… too bad your pickaxe didn’t get the memo",
+      "Arms in the air like you just don’t care – sorry blocks, you’re safe",
+      "Boogie up: because mining vertical momentum requires a sequel",
+      "Wave hello to the sky… still no block-breaking powers solo",
+      "Arm workout complete – your pickaxe demands combos, not aerobics"
     ],
     "disco_down": [
-      "Slide down—bust that groove low.",
-      "Drop it like it’s hot… on the dance floor!",
-      "Disco down: you’re the king of low-key moves."
+      "Drop it like it’s hot… but blocks remain unbothered",
+      "Slide low – unfortunately your pickaxe hates solo acts",
+      "Dive into the groove… then realize blocks won’t break for penguins",
+      "Low-key moves: perfect to avoid detection, useless for mining",
+      "Kiss the floor dance challenge accepted – still no extra ores"
     ],
     "disco_combo": [
-      "🔥 Block breaker! Mining like you own the quarry!",
-      "Up-down-up-down: your pickaxe is jealous!",
-      "Combo dance = instant TNT-free demolition!"
+      "Combo disco: your pickaxe calls this overtime",
+      "Up-down shuffle: blocks don't stand a chance",
+      "Boogie breaker: break blocks like you're headlining a rave",
+      "Tik-tok step for the win: those ores won't mine themselves",
+      "Disco demolition duo: Michelangelo meets DJ Blockbuster"
+    ],
+    "disco_right": [
+      "Slide right – checking if your ex-creeper is there",
+      "Looking right to find that sneaky skeleton posing as decoration",
+      "Rightwards shimmy: because who doesn’t want a panoramic of their doom",
+      "Peeking right: 5 stars for suspense, 0 stars for safety",
+      "Turn right: if only real life had a creeper-free angle"
+    ],
+    "disco_left": [
+      "Lean left – spotting zombies like a pro paparazzi",
+      "Left shuffle: because sometimes you gotta check your six",
+      "Slide left: perfect for scouting lava lakes or awkward villagers",
+      "Left glance: see that spider? It saw you first",
+      "Turn left: no treasure there, but hey, style points"
+    ],
+    "t_pose": [
+      "Strike a T – the world is your runway, creepers are your paparazzi",
+      "T-pose swagger: walking forward like a medieval air traffic controller",
+      "Pose so epic, your footprints should have their own biome",
+      "Confuse enemies: they’re too busy admiring the symmetry",
+      "Stand tall, walk forward: because subtlety is overrated"
+    ],
+    "leg_right": [
+      "Kick right – your toolbar scrolls, inventory can't hide from this sass",
+      "Leg flick: scrolling toolbar so fast it needs a seatbelt",
+      "Right leg scroll: hoping for diamonds, settling for dirt",
+      "Spin that leg like a DJ – toolbar goes to the beat",
+      "Footwork fireworks: toolbar scrolling is your new cardio"
+    ],
+    "leg_left": [
+      "Left-leg stomp: sprint faster than your responsibilities",
+      "Tap left: emergency sprint mode – outrun that creeper’s pickup line",
+      "Kick it into high gear – because jogging to a dungeon is so 2024",
+      "Lefty activates sprint – catch that chicken if you can",
+      "Stomp left: toggle sprint, because who needs stability"
+    ],
+    "hands_up": [
+      "Hands up, don’t shoot—just looking at clouds",
+      "Raise arms: scanning for phantoms, or UFOs, whichever spawns",
+      "Sky gazing: hope you enjoy the view before the ghast attacks",
+      "Face the heavens: your building might be missing a roof",
+      "Look up: not productive, but Instagram-worthy"
+    ],
+    "hands_hips": [
+      "Hands on hips: surveying your poor life choices in lava",
+      "Look down: at least your shoes got to see the grass once",
+      "Inspect the blocks: oh look, you missed a silverfish",
+      "Ground gaze: because creeper ambush is so much fun",
+      "Stare at your feet: planning to trip over them soon"
+    ],
+    "squat": [
+      "Squat like a pro – stealth mode activated until you sneeze",
+      "Deep knee bend: hide in grass like a ninja who hates sunlight",
+      "Crouch toggle: perfect for plotting sneak attacks on pigs",
+      "Squat it out: you’re one breath away from exhaustion",
+      "Crouch dance: your heart rate’s up, but monsters haven’t noticed... yet"
+    ],
+    "jump": [
+      "Jump, because walking is for the weak and timing is everything",
+      "Hip-hop hop: adrenaline rush or accidental fall? You decide",
+      "Bounce to the beat: creepers hate rhythm",
+      "Jump like you just found diamonds – spoilers, it's dirt",
+      "Spring into action: gravity’s optional in Minecraft"
+    ],
+    "dab": [
+      "Dab to stab: turning style into damage since Beta 1.0",
+      "Stylish strike: your sword’s new signature move",
+      "Dab n’ slash: intimidate mobs with swagger and slashes",
+      "Fashion-forward combat: those zombies won’t even feel it",
+      "Attack with flair: they’ll remember you by your dance moves"
     ]
   }
   

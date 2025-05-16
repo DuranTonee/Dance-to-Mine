@@ -33,6 +33,9 @@ CONNECTIONS = [
     (mp.solutions.pose.PoseLandmark.LEFT_KNEE,      mp.solutions.pose.PoseLandmark.LEFT_ANKLE),
     (mp.solutions.pose.PoseLandmark.RIGHT_HIP,      mp.solutions.pose.PoseLandmark.RIGHT_KNEE),
     (mp.solutions.pose.PoseLandmark.RIGHT_KNEE,     mp.solutions.pose.PoseLandmark.RIGHT_ANKLE),
+    (mp.solutions.pose.PoseLandmark.LEFT_SHOULDER,  mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER),
+    (mp.solutions.pose.PoseLandmark.LEFT_HIP,       mp.solutions.pose.PoseLandmark.RIGHT_HIP),
+
 ]
 
 # ── HELPER FUNCTIONS (as in train.py) ─────────────────────────────────
