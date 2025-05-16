@@ -1,0 +1,63 @@
+{
+    "t_pose": [
+      "Feeling mighty? W forward, soldier! 🏃‍♂️",
+      "Strictly business—strut like you own the place!",
+      "Pose so T-rrific even blocks salute you!"
+    ],
+    "dab": [
+      "Charging lasers… fire! 💥",
+      "Dab = one more swing of your magical sword!",
+      "When in doubt, just dab it out—attack mode!"
+    ],
+    "jump": [
+      "Boing! Next stop: cloud nine.",
+      "Jumping over creepers like a pro ninja!",
+      "Defying gravity (and fashion) with style."
+    ],
+    "squat": [
+      "Crouch activated—stealth level: expert.",
+      "Ctrl-crouch: now 50% cooler, 100% sneakier.",
+      "Duck and weave… or just take a breather."
+    ],
+    "leg_right": [
+      "Scrolling toolbar—leg-day meets code-day.",
+      "Right leg engaged: navigating menus like a boss!",
+      "Leg-powered UI: faster than a mouse."
+    ],
+    "leg_left": [
+      "Shift sprint—left leg, meet warp speed! ⚡",
+      "Toggle sprint: left leg says ‘giddy up’!",
+      "Ready, set, sprint—left leg endorses chaos."
+    ],
+    "hands_up": [
+      "Look up—seeking inspiration or just clouds?",
+      "Heads-up! Vertical view unlocked.",
+      "Sky’s the limit—literally!"
+    ],
+    "hands_hips": [
+      "Look down—plotting your next grand escape!",
+      "Hip check activated—looking low and tough.",
+      "Scanning floor for dropped loot…"
+    ],
+    "neutral": [
+      "Just chilling—world domination can wait.",
+      "Neutral vibes: 0% action, 100% zen.",
+      "Relax mode: no keys pressed, no worries."
+    ],
+    "disco_up": [
+      "Boogie up! Sparkle your way north.",
+      "Disco up—moonwalk not included.",
+      "Raise those arms—it’s dance o’clock!"
+    ],
+    "disco_down": [
+      "Slide down—bust that groove low.",
+      "Drop it like it’s hot… on the dance floor!",
+      "Disco down: you’re the king of low-key moves."
+    ],
+    "disco_combo": [
+      "🔥 Block breaker! Mining like you own the quarry!",
+      "Up-down-up-down: your pickaxe is jealous!",
+      "Combo dance = instant TNT-free demolition!"
+    ]
+  }
+  

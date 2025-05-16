@@ -10,8 +10,8 @@ import threading
 
 # ── CONFIG ─────────────────────────────────────────────────────────────
 MODEL_PATH       = "pose_clf.pkl"
-IGNORE_THRESHOLD = 0.2    # seconds to ignore very short detections
-ROTATE_DURATION  = 0.4
+IGNORE_THRESHOLD = 0.3    # seconds to ignore very short detections
+ROTATE_DURATION  = 0.3
 MOUSE_SPEED      = 750    # px per second (was 500)
 CLICK_HOLD_TIME  = 1.5    # seconds (was 1.0)
 
@@ -22,6 +22,7 @@ last_drop        = 0.0
 
 sprint_down      = False
 crouch_down      = False
+dabbing_active   = False
 
 mouse_speed      = 0.0
 vertical_speed   = 0.0
@@ -134,6 +135,13 @@ def delayed_stop_w():
     pyautogui.keyUp("w")
     w_down = False
 
+def do_dab_clicks():
+    """While dabbing, click every 0.625s."""
+    global dabbing_active
+    while dabbing_active:
+        pyautogui.click()
+        time.sleep(0.625)
+
 # start the thread once
 threading.Thread(target=_mouse_mover, daemon=True).start()
 
@@ -158,7 +166,7 @@ click_start       = 0.0
 updown_hist       = deque(maxlen=4) # a small history of “up/down” gestures for click detection
 
 # ── MAIN LOOP ──────────────────────────────────────────────────────────
-cap = cv2.VideoCapture(0)   # for me it varies 0/2 depending on the camera; 0 is default
+cap = cv2.VideoCapture(2)   # for me it varies 0/2 depending on the camera; 0 is default
 cv2.namedWindow("Pose2Minecraft", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("Pose2Minecraft", 1080, 720)
 print("[control] Starting. ESC to quit or move mouse to top-left to abort.")
@@ -211,6 +219,10 @@ while True:
         # ── ACTION MAPPING (on stable_pred) ────────
         if stable_pred != prev_stable_pred:
             # exiting previous pose
+            # if leaving dab, stop clicking
+            if prev_stable_pred == "dab" and dabbing_active:
+                dabbing_active = False
+
             if prev_stable_pred == "t_pose" and w_down:
                 # if next pose should keep W held a bit longer, delay release
                 if stable_pred in ("jump","disco_left","disco_right","hands_up","hands_hips"):
@@ -221,6 +233,11 @@ while True:
                     w_down = False
 
             # entering new pose
+            # if entering dab, start click-loop
+            if stable_pred == "dab":
+                dabbing_active = True
+                threading.Thread(target=do_dab_clicks, daemon=True).start()
+
             if stable_pred == "t_pose":
                 pyautogui.keyDown("w")
                 w_down = True

@@ -3,7 +3,21 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from flask import (
     Flask, render_template, request,
-    send_file, url_for, redirect
+    send_file, url_for, redirect, jsonify
+)
+
+import base64
+import io
+import cv2
+import numpy as np
+
+from classify import (
+    pose,
+    clf,
+    LANDMARKS,
+    CONNECTIONS,
+    normalize_skeleton,
+    extract_geom_features,
 )
 
 app = Flask(__name__)
@@ -98,6 +112,53 @@ def animations():
     # get all labels except "disco_mine"
     # other_labels = [l for l in ANIMATION_LABELS if l != 'disco_mine']
     return render_template('animations.html', labels=ANIMATION_LABELS)
+
+@app.route('/live')
+def live():
+    """New live‐classification page."""
+    return render_template('live.html')
+
+@app.route('/classify_frame', methods=['POST'])
+def classify_frame():
+    """Accepts a base64 JPEG, runs MediaPipe+clf, returns skeleton + pose."""
+    data = request.get_json()
+    # strip off data:image/jpeg;base64,
+    img_b64 = data['image'].split(',',1)[1]
+    img_bytes = base64.b64decode(img_b64)
+    npimg = np.frombuffer(img_bytes, np.uint8)
+    frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = pose.process(rgb)
+    if not results.pose_landmarks:
+        return jsonify({'landmarks': [], 'connections': [], 'pred': None})
+
+    # extract normalized landmarks
+    h, w = frame.shape[:2]
+    lm_list = []
+    for lm_enum in LANDMARKS:
+        lm = results.pose_landmarks.landmark[lm_enum.value]
+        lm_list.append({'x': lm.x, 'y': lm.y})
+
+    # build feature vector exactly as in classify.py
+    sk = np.array([[lm['x'], lm['y']] for lm in lm_list])
+    norm = normalize_skeleton(sk)
+    flat = norm.flatten()
+    geom = extract_geom_features(norm)
+    delta = np.zeros_like(flat)  # skip temporal for simplicity
+    feat = np.hstack([flat, geom, delta]).reshape(1, -1)
+    pred = clf.predict(feat)[0]
+
+    # map CONNECTIONS to index pairs
+    idx_map = {l.value:i for i,l in enumerate(LANDMARKS)}
+    conns = [[idx_map[s.value], idx_map[e.value]] for s,e in CONNECTIONS]
+
+    return jsonify({
+        'landmarks': lm_list,
+        'connections': conns,
+        'pred': pred
+    })
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=6942, debug=True)

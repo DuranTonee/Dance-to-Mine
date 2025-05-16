@@ -31,7 +31,7 @@ CONNECTIONS = [
     (mp.solutions.pose.PoseLandmark.RIGHT_HIP,     mp.solutions.pose.PoseLandmark.RIGHT_KNEE),
     (mp.solutions.pose.PoseLandmark.RIGHT_KNEE,    mp.solutions.pose.PoseLandmark.RIGHT_ANKLE),
 ]
-CSV_FILE = "static/animation.csv"
+CSV_FILE = "static/animations.csv"
 FPS = 30
 FRAME_INTERVAL = 1.0 / FPS
 
@@ -51,7 +51,7 @@ def ensure_header():
 
 def record_animation(label: str):
     ensure_header()
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
     if not cap.isOpened():
         print("[error] Cannot open webcam.")
         return
