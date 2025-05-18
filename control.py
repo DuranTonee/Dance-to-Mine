@@ -11,8 +11,8 @@ import threading
 # ── CONFIG ─────────────────────────────────────────────────────────────
 MODEL_PATH       = "pose_clf.pkl"
 IGNORE_THRESHOLD = 0.3    # seconds to ignore very short detections
-ROTATE_DURATION  = 0.3
-MOUSE_SPEED      = 750    # px per second (was 500)
+ROTATE_DURATION  = 0.1
+MOUSE_SPEED      = 850    # px per second (was 500)
 CLICK_HOLD_TIME  = 1.5    # seconds (was 1.0)
 
 SCROLL_INTERVAL  = 1.0
