@@ -1,29 +1,29 @@
 # Dance-to-Mine
 
-**TODOs**  
-- [ ] Define and implement pose → Minecraft action mappings  
-- [ ] Expand and augment dance-move dataset  
-- [ ] Add configuration file for custom poses and actions  
-- [ ] Improve UI/UX in the Flask dashboard   
-
 ---
 
 ## Description
 
-Dance-to-Mine (very original, huh?) is a Python-based dance-move recognition pipeline that turns your body poses into game actions - focused on controlling (initially) Minecraft via MediaPipe landmarks and a RandomForest model. Inspired by Fundy's [Coding Minecraft to work with Dance Moves...](https://www.youtube.com/watch?v=z2sGFFXuu38)
+Dance-to-Mine (very original, huh?) is a Python-based dance-move recognition pipeline that turns your body poses into game actions. Initially focused on controlling Minecraft via MediaPipe landmarks and a RandomForest model, it’s grown into a full suite:
+
+> **Inspired by**: Fundy’s [Coding Minecraft to work with Dance Moves…](https://www.youtube.com/watch?v=z2sGFFXuu38)
 
 ---
 
 ## Features
 
-- **Pose collection** with countdown, CSV logging, and simple OpenCV UI (`collect.py`)  
-- **Feature engineering**:  
+- **Pose Collection**: countdown, CSV logging, and simple OpenCV UI (`collect.py`)  
+- **Animation Recording**: custom script for capturing dance animations to CSV for advanced visualizations (`animation_maker.py`)  
+- **Feature Engineering**:  
   - Translation & scale normalization  
   - Relative distances & angles  
   - Temporal delta features  
-- **Model training** with 5-fold stratified cross-validation and a `RandomForestClassifier` (`train.py`)  
-- **Real-time classification** with skeleton overlay and red-font labels (`classify.py`)  
-- **Flask web dashboard** for browsing collected frames, editing/deleting data, and visualizing poses (`app.py`, `templates/`)  
+- **Model Training**: 5-fold stratified cross-validation + final RandomForest model (`train.py`)  
+- **Real-Time CLI Classification**: skeleton overlay, confidence scores, resizable window (`classify.py`)  
+- **Web Dashboard & Live Demo**: Flask + D3.js interface for browsing data, live pose classification, and interactive skeletons (`app.py`, `templates/`, `live.html`)  
+- **Pose Notes**: random, playful notes per pose served from `pose_notes.json`
+  > Note: front-end was made with ChatGPT
+- **Game Control (Minecraft & Beyond)**: map poses to keystrokes/mouse actions via PyAutoGUI & `mouse` (`control.py`)  
 
 ---
 
@@ -33,7 +33,10 @@ Dance-to-Mine (very original, huh?) is a Python-based dance-move recognition pip
 
 - Python 3.8+  
 - `venv` for environment isolation  
-- Webcam (for live capture)  
+- Webcam  
+
+> [!NOTE]
+> The default camera index in most scripts is set to `2`. On many systems it’ll be `0` or `1`—adjust the `cv2.VideoCapture(...)` argument as needed.
 
 ### Installation
 
@@ -44,92 +47,144 @@ cd Dance-to-Mine
 
 # Create & activate virtual environment
 python -m venv venv
-source venv/bin/activate      # on Windows: venv\Scripts\activate
+source venv/bin/activate      # Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
+> [!IMPORTANT]
+> For the web dashboard and live demo, an internet connection is needed to load D3.js and PapaParse from their CDNs.
+
+---
+
 ## Usage
-Collect Data
--------------
+
+### 1. Collect Pose Data
+
 ```bash
-python collect.py
+python collect.py <pose_label>
 ```
 
-- Enter the pose label (e.g., jump, left_turn)
-- Perform the move during the 3-second countdown until you press 'q'
+- Enters a 3 s countdown
+- Press **q** to stop recording
+- Appends normalized landmarks + label to `static/data.csv`
 
+### 2. Record Dance Animations
 
-Train Model
-------------
+```bash
+python animation_maker.py <animation_label>
+```
+
+- Similar to `collect.py` but logs only selected joints + draws full-body skeleton
+- Outputs to `static/animations.csv`
+
+### 3. Train the Model
+
 ```bash
 python train.py
 ```
 
-- Runs 5-fold stratified CV, reports fold accuracies
-- Trains final model on full data, saves pose_clf.pkl
+- Runs 5-fold CV, reports fold accuracies
+- Trains final RandomForest on all data, saves `pose_clf.pkl`
 
+### 4. CLI Pose Classification
 
-Classify Live
---------------
 ```bash
 python classify.py
 ```
-- Opens a resizable window with your webcam feed
-- Draws only the 12 key joints & bones (no face/fingers)
-- Displays the detected move and confidence in red
 
+- Opens a resizable window (1.2× enlarged) with live webcam feed
+- Draws 12 key joints & bones, shows predicted move + confidence
 
-Dashboard (Optional)
----------------------
+### 5. Game Control
+
 ```bash
-$ python app.py
+python control.py
 ```
 
-- Browse /pipeline to see the workflow steps
-- Click /pose/{label} to review and delete frames
-- Visualize skeletons via generated PNGs
+- Uses the trained model to map stable poses → keystrokes/mouse events
+- Controls Minecraft (or other games/apps) via PyAutoGUI & `mouse`
+
+> [!NOTE]
+> You can abort at any time by moving your mouse to the top-left corner (PyAutoGUI failsafe).
+
+### 6. Web Dashboard & Live Demo
+
+```bash
+python app.py
+```
+
+- Visit `http://localhost:5000` for neon-retro landing  
+- **/gallery**: browse collected frames by pose  
+- **/animations**: view all recorded animations with neon effects  
+- **/live**: interactive live pose classification + random pose notes  
+
+> [!TIP]
+> Edit `static/pose_notes.json` to customize notes shown for each pose.
+
+---
 
 ## Project Structure
+
 ```
 Dance-to-Mine/
-├── collect.py                 # Data collection script
-├── train.py                   # Feature engineering & model training
-├── classify.py                # Real-time pose classification
-├── app.py                     # Flask dashboard & visualization
-├── data.csv                   # Collected landmark data
-├── pose_clf.pkl               # Serialized RandomForest pipeline
-├── static/                    # CSS, images, frontend assets
-├── templates/                 # Flask HTML templates (index, pipeline, pose)
+├── animation_maker.py # Record dance animations → CSV
+├── collect.py # Pose collection script
+├── train.py # Feature engineering & model training
+├── classify.py # Real-time CLI pose classification
+├── control.py # Map poses → game controls
+├── app.py # Flask dashboard & live demo
+├── static/
+│ ├── data.csv # Collected pose data
+│ ├── animations.csv # Recorded animations
+│ ├── pose_clf.pkl # Trained RandomForest model
+│ ├── pose_notes.json # Notes per pose for live demo
+│ └── ... # CSS, JS, assets
+├── templates/ # Flask HTML templates
+│ ├── main.html
+│ ├── gallery.html
+│ ├── animations.html
+│ ├── live.html
+│ └── ...
+├── requirements.txt
+├── LICENSE
 ├── landmarks.png              # Diagram of selected landmarks
 └── teachable_machine-fail/    # Experiments with Teachable Machine
 ```
 
-## How it works
-Collect
---------
-- MediaPipe Pose detects 33 landmarks; we record only 12 (arms, torso, legs)
-- Normalized coordinates (0–1) saved alongside the pose label
 
-Train
-------
-- Normalization: Center skeleton at hip midpoint; scale by torso length
-- Geometric features: Compute joint-to-joint distances & key angles
-- Temporal deltas: Frame-to-frame landmark changes for motion context
-- StratifiedKFold ensures balanced evaluation across pose classes
+---
 
-Classify
----------
-- Live webcam frames → MediaPipe → feature pipeline → RandomForest → predicted pose
-- Overlay a simplified skeleton and label in an enlarged window
+## How It Works
 
-Game Control (Future)
-----------------------
-- Map each pose label to a Minecraft action (e.g., forward, jump, place_block)
-- Send keystrokes or API commands to your Minecraft client
+1. **Collect & Animate**  
+   - MediaPipe Pose → select 12 joints → normalize & save to CSV  
+   - `animation_maker.py` produces time-series data for D3.js animations  
+
+2. **Feature Engineering**  
+   - Center at hip midpoint, scale by torso length  
+   - Compute joint-to-joint distances & angles  
+   - Frame-to-frame deltas for motion context  
+
+3. **Training**  
+   - StratifiedKFold CV → evaluate → final RandomForest pipeline  
+   - Model saved as `pose_clf.pkl`  
+
+4. **Real-Time Classification**  
+   - Live webcam frames → MediaPipe → feature pipeline → RandomForest → pose prediction  
+
+5. **Web & Visualization**  
+   - Flask serves data & D3.js powers neon-style skeleton animations  
+   - Interactive /live page for human-in-the-loop demos  
+
+6. **Game Control**  
+   - Debounce stable poses → map to keyboard/mouse commands  
+   - Control Minecraft (forward, jump, rotate, click) or any app  
+
+---
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0.
+This project is licensed under the GNU General Public License v3.0.  
 See the LICENSE file for details.
